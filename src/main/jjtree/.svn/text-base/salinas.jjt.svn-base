@@ -1,0 +1,564 @@
+/* Copyright 2011-2013 i Data Connect! */
+PARSER_BEGIN(SalinasParser)
+package com.idataconnect.salinas.parser;
+
+import java.util.List;
+import java.util.LinkedList;
+import com.idataconnect.salinas.parser.*;
+import com.idataconnect.salinas.data.*;
+
+public class SalinasParser {
+
+    protected void initNode(SalinasNode node, Token t) {
+        node.setBeginLine(t.beginLine);
+        node.setBeginColumn(t.beginColumn);
+    }
+}
+PARSER_END(SalinasParser)
+
+SKIP :
+{
+    " "
+    | "\t"
+    | < SINGLE_LINE_COMMENT: <SL_COMMENT_START> (~["\r","\n"])* >
+    | < NEXT_LINE_CONTINUATION: <SEMICOLON> <EOL> >
+}
+
+/* Handle multi line comments as a single skipped token, using parser states. */
+MORE :
+{
+    "/*" : IN_COMMENT
+}
+<IN_COMMENT> MORE : {
+    < ~[] >
+}
+<IN_COMMENT> SKIP :
+{
+    "*/" : DEFAULT
+}
+
+TOKEN : { < EOL : "\r" | "\n" | "\r\n" > }
+TOKEN : { < SL_COMMENT_START : <SL_COMMENT_SLASHES> | <SL_COMMENT_AMPERSANDS> > }
+TOKEN : { < EQUAL_TO : "==" > }
+TOKEN : { < NOT_EQUAL_TO : "!=" > }
+TOKEN : { < STARTS_WITH : "=" > }
+TOKEN : { < NOT_STARTS_WITH : "<>" | "#" > }
+TOKEN : { < EQUAL_TO_EXACT : "===" > }
+TOKEN : { < NOT_EQUAL_TO_EXACT : "!==" > }
+TOKEN : { < LESS_THAN_OR_EQUAL_TO : "<=" | "=<" > }
+TOKEN : { < GREATER_THAN_OR_EQUAL_TO : ">=" | "=>" > }
+TOKEN : { < LESS_THAN : "<" > }
+TOKEN : { < GREATER_THAN : ">" > }
+TOKEN : { < MULT : "*" > }
+TOKEN : { < DIV : "/" > }
+TOKEN : { < PLUS : "+" > }
+TOKEN : { < MINUS : "-" > }
+TOKEN : { < MOD : "%" > }
+TOKEN : { < EXP : "**" | "^" > }
+TOKEN : { < CONTAINS : "$" > }
+TOKEN : { < SEMICOLON : ";" > }
+TOKEN : { < DOUBLE_SEMICOLON : <SEMICOLON> <SEMICOLON> > }
+TOKEN : { < ASSIGN : ":=" > }
+TOKEN : { < AND : "AND" | ".AND." > }
+TOKEN : { < OR : "OR" | ".OR." > }
+TOKEN : { < NOT : "NOT" | ".NOT." > }
+TOKEN : { < TRUE : "TRUE" | ".T." > }
+TOKEN : { < FALSE : "FALSE" | ".F." > }
+TOKEN : { < NULL : "NULL" > }
+TOKEN : { < NUMBER_TYPE : ":NUMBER" > }
+TOKEN : { < STRING_TYPE : ":STRING" > }
+TOKEN : { < DATE_TYPE : ":DATE" > }
+TOKEN : { < BOOLEAN_TYPE : ":BOOLEAN" > }
+TOKEN : { < PUBLIC : "PUBLIC" > }
+TOKEN : { < STATIC : "STATIC" > }
+TOKEN : { < USE : "USE" > }
+TOKEN : { < IN : "IN" > }
+TOKEN : { < ALIAS : "ALIAS" > }
+TOKEN : { < PRINT : "??" > }
+TOKEN : { < PRINTLN : "?" > }
+TOKEN : { < PRINTPRELN : "???" > }
+TOKEN : { < SET : "SET" > }
+TOKEN : { < OFF : "OFF" > }
+TOKEN : { < ON : "ON" > }
+TOKEN : { < TO : "TO" > }
+TOKEN : { < DO : "DO" > }
+TOKEN : { < FOR : "FOR" > }
+TOKEN : { < NEXT : "NEXT" | "ENDFOR" > }
+TOKEN : { < STEP : "STEP" > }
+TOKEN : { < WHILE : "WHILE" > }
+TOKEN : { < UNTIL : "UNTIL" > }
+TOKEN : { < ENDDO : "ENDDO" > }
+TOKEN : { < CASE : "CASE" > }
+TOKEN : { < OTHERWISE : "OTHERWISE" > }
+TOKEN : { < ENDCASE : "ENDCASE" > }
+TOKEN : { < IF : "IF" > }
+TOKEN : { < ELSEIF : "ELSEIF" > }
+TOKEN : { < ELSE : "ELSE" > }
+TOKEN : { < ENDIF : "ENDIF" > }
+TOKEN : { < FUNCTION : "FUNCTION" | "PROCEDURE" > }
+TOKEN : { < ENDFUNC : "ENDFUNC" | "ENDPROC" > }
+TOKEN : { < RETURN : "RETURN" > }
+TOKEN : { < DATE_LITERAL : <UNAMBIGUOUS_DATE_LITERAL> | <AMBIGUOUS_DATE_LITERAL> > }
+TOKEN : { < NUMBER_LITERAL : <DECIMAL_LITERAL> | <HEX_LITERAL> | <BINARY_LITERAL> > }
+TOKEN : { < IDENTIFIER : <LETTER> (<LETTER> | <DIGIT>)* > }
+TOKEN : { < STRING_LITERAL : <DOUBLE_QUOTED_STRING_LITERAL> | <SINGLE_QUOTED_STRING_LITERAL> > }
+TOKEN : { < #DOUBLE_QUOTED_STRING_LITERAL : "\"" ( ~["\""] )* "\"" > }
+TOKEN : { < #SINGLE_QUOTED_STRING_LITERAL : "'" ( ~["'"] )* "'" > }
+TOKEN : { < #UNAMBIGUOUS_DATE_LITERAL : "{" "^" (<DIGIT>){4} "-" (<DIGIT>){2} "-" (<DIGIT>){2} "}" > }
+TOKEN : { < #AMBIGUOUS_DATE_LITERAL : "{" (<DIGIT>)+ "/" (<DIGIT>)+ "/" (<DIGIT>)+ "}" > }
+TOKEN : { < #DECIMAL_LITERAL : (<DIGIT> ((<DIGIT> | "_")* <DIGIT>)? ((".") (<DIGIT> (<DIGIT> | "_")*)?)?) | ("." <DIGIT> (<DIGIT> | "_")*) > }
+TOKEN : { < #HEX_LITERAL : "0" "x" (<DIGIT> | ["a" - "f"]) (<DIGIT> | ["a" - "f"] | "_")* > }
+TOKEN : { < #BINARY_LITERAL : "0" "b" ("0" | "1") ("0" | "1" | "_")* > }
+TOKEN : { < #DIGIT : ["0" - "9"] > }
+TOKEN : { < #LETTER : ["a" - "z", "_"] > }
+TOKEN : { < #SL_COMMENT_SLASHES : "//" > }
+TOKEN : { < #SL_COMMENT_AMPERSANDS : "&&" > }
+
+SalinasNode buildAst() #SalinasScript : {}
+{
+    (TerminatedStatement())*
+    <EOF>
+    {return jjtThis;}
+}
+
+void TerminatedStatement() #void : {}
+{
+    EndOfStatement()
+    | (Statement() EndOfStatement())
+}
+
+void Statement() : {}
+{
+    UseStatement()
+    | ForLoop()
+    | PrintStatement()
+    | IfBlock()
+    | ReturnStatement()
+    | LOOKAHEAD(<DO> <WHILE>) WhileLoop()
+    | CaseBlock()
+    | LOOKAHEAD(<SET> <IDENTIFIER>) SetStatement()
+    /* Need two lookaheads for array access since the lookahead inside
+       ArrayAccessExpression() distrupts LOOKAHEAD(ArrayAccessExpression() <STARTS_WITH>)
+     */
+    | LOOKAHEAD(LegacyArrayAccessExpression() <STARTS_WITH>) AssignmentStatement()
+    | LOOKAHEAD(NormalArrayAccessExpression() <STARTS_WITH>) AssignmentStatement()
+    | Expression()
+}
+
+/* Special case where "<var> =" acts as assignment at the beginning of a line. */
+void AssignmentStatement() #Assign : {}
+{
+    ArrayAccessExpression() <STARTS_WITH> Expression()
+}
+
+void EndOfStatement() #void : {}
+{
+    <EOL> | <DOUBLE_SEMICOLON>
+}
+
+void ReturnStatement() #Return : {Token t;}
+{
+    t = <RETURN> {initNode(jjtThis, t); t = null;}
+    Expression()
+}
+
+void UseStatement() #Use :
+{
+    Token t;
+    String s = null;
+}
+{
+    t = <USE> {initNode(jjtThis, t); t = null;}
+    (Expression()
+        (
+            (<IN> Expression()) #In
+            | (<ALIAS> t = <IDENTIFIER> {jjtThis.jjtSetValue(t.image);}) #Alias
+        )*
+    )?
+    {jjtThis.jjtSetValue(s); t = null; s = null;}
+}
+
+void PrintStatement() #void : {Token t;}
+{
+    (t = <PRINT> {initNode(jjtThis, t); t = null;} (Expression())?) #Print
+    | (t = <PRINTLN> {initNode(jjtThis, t); t = null;} (Expression())?) #PrintLn
+    | (t = <PRINTPRELN> {initNode(jjtThis, t); t = null;} (Expression())?) #PrintPreLn
+}
+
+void IfBlock() : {Token t;}
+{
+    (t = <IF> {initNode(jjtThis, t); t = null;} (Expression() EndOfStatement() (TerminatedStatement())*) #IfBranch)
+    (((<ELSEIF> Expression() EndOfStatement() (TerminatedStatement())*)*) #IfBranch(>0))
+    (((<ELSE> EndOfStatement() (TerminatedStatement())*)?) #IfBranch(>0))
+    <ENDIF>
+}
+
+void SetStatement() #Set : {Token t;}
+{
+    t = <SET> {initNode(jjtThis, t); t = null;}
+    Identifier()
+    (<ON> {jjtThis.jjtSetValue(Boolean.TRUE);}
+    | <OFF> {jjtThis.jjtSetValue(Boolean.FALSE);}
+    | (<TO> (Expression())?))
+}
+
+void Expression() #void : {}
+{
+    LOOKAHEAD(ArrayAccessExpression() <ASSIGN>) AssignmentExpression()
+    | OrExpression()
+}
+
+void AssignmentExpression() #void : {}
+{
+    (
+        ArrayAccessExpression() <ASSIGN> Expression()
+    ) #Assign
+}
+
+void OrExpression() #void : {}
+{
+    (
+        AndExpression() (<OR> AndExpression())*
+    ) #Or(>1)
+}
+
+void AndExpression() #void : {}
+{
+    (
+        EqualityExpression() (<AND> EqualityExpression())*
+    ) #And(>1)
+}
+
+void EqualityExpression() #void : {}
+{
+    (
+        ComparisonExpression() (
+            (<EQUAL_TO> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.EQUAL_TO);
+            }
+            | <NOT_EQUAL_TO> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.NOT_EQUAL_TO);
+            }
+            | <EQUAL_TO_EXACT> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.EQUAL_TO_EXACT);
+            }
+            | <NOT_EQUAL_TO_EXACT> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.NOT_EQUAL_TO_EXACT);
+            }
+            | <STARTS_WITH> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.STARTS_WITH);
+            }
+            | <NOT_STARTS_WITH> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.NOT_STARTS_WITH);
+            }
+            ) ComparisonExpression())*
+    ) #Equality(>1)
+}
+
+void ComparisonExpression() #void : {}
+{
+    (
+        AdditiveExpression() (
+            (<LESS_THAN_OR_EQUAL_TO> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.LESS_THAN_OR_EQUAL_TO);
+            }
+            | <GREATER_THAN_OR_EQUAL_TO> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.GREATER_THAN_OR_EQUAL_TO);
+            }
+            | <LESS_THAN> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.LESS_THAN);
+            }
+            | <GREATER_THAN> {
+                if (jjtThis.jjtGetValue() == null) {
+                    jjtThis.jjtSetValue(new LinkedList());
+                }
+                ((List) jjtThis.jjtGetValue()).add(ComparativeOp.GREATER_THAN);
+            }
+            ) AdditiveExpression())*
+    ) #Compare(>1)
+}
+
+void AdditiveExpression() #void : {}
+{
+    (
+        MultiplicativeExpression() (LOOKAHEAD(1) (<PLUS> {
+            if (jjtThis.jjtGetValue() == null) {
+                jjtThis.jjtSetValue(new LinkedList());
+            }
+            ((List) jjtThis.jjtGetValue()).add(SalinasParserConstants.PLUS);
+        } | <MINUS> {
+            if (jjtThis.jjtGetValue() == null) {
+                jjtThis.jjtSetValue(new LinkedList());
+            }
+            ((List) jjtThis.jjtGetValue()).add(SalinasParserConstants.MINUS);
+        }) MultiplicativeExpression())*
+    ) #Additive(>1)
+}
+
+void MultiplicativeExpression() #void : {}
+{
+    (
+        ExponentExpression() ((<MULT> {
+            if (jjtThis.jjtGetValue() == null) {
+                jjtThis.jjtSetValue(new LinkedList());
+            }
+            ((List) jjtThis.jjtGetValue()).add(SalinasParserConstants.MULT);
+        } | <DIV> {
+            if (jjtThis.jjtGetValue() == null) {
+                jjtThis.jjtSetValue(new LinkedList());
+            }
+            ((List) jjtThis.jjtGetValue()).add(SalinasParserConstants.DIV);
+        } | <MOD> {
+            if (jjtThis.jjtGetValue() == null) {
+                jjtThis.jjtSetValue(new LinkedList());
+            }
+            ((List) jjtThis.jjtGetValue()).add(SalinasParserConstants.MOD);
+        }) ExponentExpression())*
+    ) #Multiplicative(>1)
+}
+
+void ExponentExpression() #void : {}
+{
+    (
+        ContainsExpression() (<EXP> { /* This is currently a requirement of
+                                         numericCalculation() */
+            if (jjtThis.jjtGetValue() == null) {
+                jjtThis.jjtSetValue(new LinkedList());
+            }
+            ((List) jjtThis.jjtGetValue()).add(SalinasParserConstants.EXP);
+        } ContainsExpression())?
+    ) #Exponent(>1)
+}
+
+void ContainsExpression() #void : {}
+{
+    (
+        ArrayAccessExpression() (<CONTAINS> ArrayAccessExpression())*
+    ) #Contains(>1)
+}
+
+/* Add multiple sets of brackets using looping since we can't use
+   left recursion. This must be resolved in the interpreter. */
+void ArrayAccessExpression() #void : {}
+{
+    LOOKAHEAD(FunctionCallExpression() "[" Expression() ",") LegacyArrayAccessExpression()
+    | NormalArrayAccessExpression()
+}
+
+void NormalArrayAccessExpression() #void : {}
+{
+    (
+        FunctionCallExpression()
+        NormalArraySegments()
+    ) #ArrayAccess(>1)
+}
+
+void LegacyArrayAccessExpression() #void : {}
+{
+    (
+        FunctionCallExpression()
+        (LegacyMultiArraySegments())?
+    ) #ArrayAccess(>1)
+}
+
+void NormalArraySegments() #void : {}
+{
+    (ArrayAccessSegment())*
+}
+
+void LegacyMultiArraySegments() #void : {}
+{
+    "["
+        ((Expression()) #ArrayAccess)
+        ("," (Expression()) #ArrayAccess)+
+    "]"
+}
+
+void ArrayAccessSegment() : {}
+{
+    "[" Expression() "]"
+}
+
+/* More looping rather than left recursion here. This must also be resolved
+   in the interpreter. */
+void FunctionCallExpression() #void : {}
+{
+    (
+        BaseExpression()
+        (LOOKAHEAD(1) FunctionCallSegment())*
+    ) #FunctionCall(>1)
+}
+
+void FunctionCallSegment() : {}
+{
+    "(" (LOOKAHEAD(1) Expression() ("," Expression())*)? ")"
+}
+
+void BaseExpression() #void : {}
+{
+    SetExpression()
+    | FunctionDeclaration()
+    | Literal()
+    | Identifier()
+    | UnaryExpression()
+}
+
+void UnaryExpression() #void : {Token t;}
+{
+    "(" Expression() ")"
+    | t = <PLUS> FunctionCallExpression()
+    | (t = <MINUS> FunctionCallExpression() {
+        initNode(jjtThis, t);
+        t = null;
+        jjtThis.jjtSetValue(java.util.Collections.singletonList(
+                Integer.valueOf(SalinasParserConstants.MINUS)));
+    }) #Additive
+    | (t = <NOT> FunctionCallExpression() {initNode(jjtThis, t); t = null;}) #BooleanNot
+}
+
+void SetExpression() : {Token t;}
+{
+    t = <SET> {initNode(jjtThis, t); t = null;}
+    "(" Expression() ")"
+}
+
+SalinasNode FunctionDeclaration() : {Token t;}
+{
+    t = <FUNCTION> {initNode(jjtThis, t); t = null;}
+    (Identifier())?
+    ("(" (FunctionParameter() ("," FunctionParameter())*)? ")")?
+    EndOfStatement()
+    (TerminatedStatement())*
+    <ENDFUNC>
+    {return jjtThis;}
+}
+
+void FunctionParameter() : {}
+{
+    Identifier()
+    ((<ASSIGN> | <STARTS_WITH>) Expression())? /* Default Value */
+}
+
+void ForLoop() : {Token t;}
+{
+    t = <FOR> {initNode(jjtThis, t); t = null;}
+    Identifier() (<ASSIGN> | <STARTS_WITH>) Expression() <TO> Expression()
+    ((<STEP> Expression()) #Step)?
+    EndOfStatement()
+    (TerminatedStatement())*
+    (<NEXT>)
+}
+
+void WhileLoop() : {Token t;}
+{
+    t = <DO> {initNode(jjtThis, t); t = null;}
+    <WHILE> Expression() EndOfStatement()
+    (TerminatedStatement())*
+    <ENDDO>
+}
+
+void CaseBlock() : {Token t;}
+{
+    t = <DO> {initNode(jjtThis, t); t = null;}
+    <CASE> EndOfStatement()
+    ((<CASE> Expression() EndOfStatement() (TerminatedStatement())*) #Case)*
+    ((<OTHERWISE> EndOfStatement() (TerminatedStatement())*) #Otherwise)?
+    <ENDCASE>
+}
+
+/* Identifier and literals */
+
+void Literal() #void : {}
+{
+    NullLiteral()
+    | NumberLiteral()
+    | StringLiteral()
+    | BooleanLiteral()
+    | DateLiteral()
+    | ArrayLiteral()
+}
+
+void DateLiteral() #Date : {Token t;}
+{
+    t = <DATE_LITERAL> 
+    {initNode(jjtThis, t); jjtThis.jjtSetValue(t.image); t = null;}
+}
+
+void NumberLiteral() #Number : {Token t;}
+{
+    t = <NUMBER_LITERAL>
+    {initNode(jjtThis, t); jjtThis.jjtSetValue(t.image); t = null;}
+}
+
+void StringLiteral() #String : {Token t;}
+{
+    t = <STRING_LITERAL>
+    {initNode(jjtThis, t); jjtThis.jjtSetValue(t.image); t = null; }
+}
+
+void BooleanLiteral() #Boolean : {Token t;}
+{
+    (t = <TRUE> {initNode(jjtThis, t); jjtThis.jjtSetValue(Boolean.TRUE);}
+    | t = <FALSE> {initNode(jjtThis, t); jjtThis.jjtSetValue(Boolean.FALSE);})
+}
+
+void NullLiteral() #Null : {} {<NULL>}
+
+void DataType() : {}
+{
+    <NUMBER_TYPE> {jjtThis.jjtSetValue(SalinasType.NUMBER);}
+    | <STRING_TYPE> {jjtThis.jjtSetValue(SalinasType.STRING);}
+    | <DATE_TYPE> {jjtThis.jjtSetValue(SalinasType.DATE);}
+    | <BOOLEAN_TYPE> {jjtThis.jjtSetValue(SalinasType.BOOLEAN);}
+}
+
+String Identifier() : {Token t;}
+{
+    (
+        t = <PUBLIC> {initNode(jjtThis, t); t = null;} #Public
+        | t = <STATIC> {initNode(jjtThis, t); t = null;} #Static
+    )* #Modifiers(>0)
+    (
+        t = <IDENTIFIER> {initNode(jjtThis, t); jjtThis.jjtSetValue(t.image); t = null;}
+        (DataType())? /* Attach strong type */
+    )
+    {return (String) jjtThis.jjtGetValue();}
+}
+
+void ArrayLiteral() : {Token t;}
+{
+    t = "{" {initNode(jjtThis, t); t = null;}
+    (
+        Expression()
+        (LOOKAHEAD(2) "," Expression())*
+    )?
+    (",")?
+    "}"
+}
