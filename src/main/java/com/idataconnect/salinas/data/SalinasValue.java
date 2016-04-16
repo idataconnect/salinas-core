@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2013 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.data;
 
@@ -352,6 +352,29 @@ public class SalinasValue {
             return getValue();
         } else {
             return getCurrentType().convert(type, value);
+        }
+    }
+
+    /**
+     * Returns an appropriate salinas value based on the given value. This
+     * method is generally preferred over the constructor because it may
+     * avoid additional object creation.
+     * @param value the value to convert to a <code>SalinasValue</code>
+     * @return a <code>SalinasValue</code> representing the given value
+     * @throws IllegalArgumentException if the value cannot be represented
+     * by a <code>SalinasValue</code>
+     */
+    public static SalinasValue valueOf(Object value) {
+        if (value == null) {
+            return SalinasValue.NULL;
+        } else if (value instanceof SalinasValue) {
+            return (SalinasValue) value;
+        } else if (value == Boolean.TRUE) {
+            return SalinasValue.TRUE;
+        } else if (value == Boolean.FALSE) {
+            return SalinasValue.FALSE;
+        } else {
+            return new SalinasValue(value);
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.interpreter;
 
@@ -74,7 +74,7 @@ public class FunctionCallInterpreter implements InterpreterDelegate {
             assert pushedFrame.getNode() == node : "Call stack unbalanced";
 
             if (node.jjtGetNumChildren() > ++segmentCount) {
-                // Chained method call
+                // Chained function call
                 if (returnValue.getCurrentType() == SalinasType.FUNCTION) {
                     function = new UserDefinedFunction(returnValue, functionContext);
                 } else {

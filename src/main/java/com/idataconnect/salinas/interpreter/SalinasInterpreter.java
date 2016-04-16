@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.interpreter;
 
@@ -141,54 +141,9 @@ public class SalinasInterpreter {
                 final String name = (String) firstChild.jjtGetValue();
                 final SalinasValue functionValue = new SalinasValue(
                         node, SalinasType.FUNCTION);
-                try {
-                    setPublicVariable(name, functionValue, context);
-                } catch (ConversionException ex) {
-                    // Shouldn't happen
-                    Logger.getLogger(SalinasInterpreter.class.getName())
-                            .log(Level.WARNING, "Conversion error while "
-                            + "importing function {0}",
-                            name);
-                }
+                context.getBindings(ScriptContext.ENGINE_SCOPE)
+                        .put(name.toUpperCase(), functionValue);
             }
-        }
-    }
-
-    /**
-     * Sets a public variable into the given script context.
-     *
-     * @param name the name of the variable
-     * @param value the value of the variable
-     * @param context the script context
-     */
-    public static void setPublicVariable(String name, SalinasValue value,
-            ScriptContext context) throws ConversionException {
-        final Bindings publicScope = context.getBindings(ScriptContext.ENGINE_SCOPE);
-        Object o = publicScope.get(name);
-        if (o == null || ! (o instanceof SalinasValue) || ((SalinasValue) value)
-                .getStrongType() != SalinasType.UNDEFINED) {
-            publicScope.put(name.toUpperCase(), value);
-        } else {
-            final SalinasValue existing = (SalinasValue) o;
-            existing.setValue(value);
-        }
-    }
-
-    /**
-     * Gets a public variable.
-     *
-     * @param name the name of the variable
-     * @param context the script context
-     * @return the value of the variable, or <code>null</code> if it did not
-     * exist
-     */
-    public static SalinasValue getPublicVariable(String name, ScriptContext context) {
-        final Bindings publicScope = context.getBindings(ScriptContext.ENGINE_SCOPE);
-        final Object o = publicScope.get(name.toUpperCase());
-        if (o == null || ! (o instanceof SalinasValue)) {
-            return null;
-        } else {
-            return (SalinasValue) o;
         }
     }
 

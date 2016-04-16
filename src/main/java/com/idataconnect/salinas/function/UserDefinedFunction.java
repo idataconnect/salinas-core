@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2013 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.function;
 
@@ -46,42 +46,40 @@ public class UserDefinedFunction extends Function {
         int parameterCount = 0;
         for (int count = 0; count < node.jjtGetNumChildren(); count++) {
             final SalinasNode childNode = (SalinasNode) node.jjtGetChild(count);
-            if (childNode.getId() == JJTIDENTIFIER) {
-                continue;
-            } else if (childNode.getId() == JJTFUNCTIONPARAMETER) {
-                // Check if a value was passed in for this parameter
-                if (parameters.length > parameterCount) {
-                    // Assign the passed value to the parameter variable
-                    parameterAssign((SalinasNode) childNode.jjtGetChild(0),
-                            parameters[parameterCount++],
-                            node);
-                } else {
-                    // Check whether this parameter has a default value
-                    if (childNode.jjtGetNumChildren() > 1) {
-                        final SalinasValue defaultValue
-                                = SalinasInterpreter.interpret(
-                                (SalinasNode) childNode.jjtGetChild(1),
-                                functionContext.getScriptContext());
-                        // Assign the default value to the parameter variable
+            switch (childNode.getId()) {
+                case JJTIDENTIFIER:
+                    break;
+                case JJTFUNCTIONPARAMETER:
+                    // Check if a value was passed in for this parameter
+                    if (parameters.length > parameterCount) {
+                        // Assign the passed value to the parameter variable
                         parameterAssign((SalinasNode) childNode.jjtGetChild(0),
-                                defaultValue,
-                                node);
+                                parameters[parameterCount++], node, context);
                     } else {
-                        throw new FunctionCallException("Not enough parameters passed to function");
-                    }
-                }
-            } else {
-                // Statements inside the function
-                SalinasInterpreter.interpret(childNode, functionContext.getScriptContext());
-
-                SalinasValue returning = (SalinasValue) functionContext
-                        .getScriptContext().getAttribute("returning",
-                        ScriptContext.ENGINE_SCOPE);
-                if (returning != null) {
-                    functionContext.getScriptContext().removeAttribute("returning",
-                            ScriptContext.ENGINE_SCOPE);
-                    return returning;
-                }
+                        // Check whether this parameter has a default value
+                        if (childNode.jjtGetNumChildren() > 1) {
+                            final SalinasValue defaultValue
+                                    = SalinasInterpreter.interpret(
+                                            (SalinasNode) childNode.jjtGetChild(1),
+                                            functionContext.getScriptContext());
+                            // Assign the default value to the parameter variable
+                            parameterAssign((SalinasNode) childNode.jjtGetChild(0),
+                                    defaultValue, node, context);
+                        } else {
+                            throw new FunctionCallException("Not enough parameters passed to function");
+                        }
+                    }   break;
+                default:
+                    // Statements inside the function
+                    SalinasInterpreter.interpret(childNode, functionContext.getScriptContext());
+                    SalinasValue returning = (SalinasValue) functionContext
+                            .getScriptContext().getAttribute("returning",
+                                    ScriptContext.ENGINE_SCOPE);
+                    if (returning != null) {
+                        functionContext.getScriptContext().removeAttribute("returning",
+                                ScriptContext.ENGINE_SCOPE);
+                        return returning;
+                    }   break;
             }
         }
 
@@ -100,21 +98,21 @@ public class UserDefinedFunction extends Function {
     void parameterAssign(
             final SalinasNode identifierNode,
             final SalinasValue value,
-            final SalinasNode functionNode
+            final SalinasNode functionNode,
+            final ScriptContext context
             ) throws ConversionException {
         SalinasValue existingVar = functionNode.getVariable(
-                (String) identifierNode.jjtGetValue(), false, null);
-        SalinasValue val;
+                (String) identifierNode.jjtGetValue(), false, context);
         if (existingVar != null) {
             existingVar.setValue(value);
-            val = existingVar;
         } else {
             // TODO consolidate variable setting routines
-            val = value;
+            final SalinasValue val = value;
             functionNode.setVariable((String) identifierNode.jjtGetValue(),
-                    val);
+                    val, context);
 
             if (identifierNode.jjtGetNumChildren() > 0) {
+                // parameter has strong type
                 assert ((SalinasNode) identifierNode.jjtGetChild(0)).getId()
                         == JJTDATATYPE;
                 final SalinasType dataType

@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2013 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.function;
 
@@ -8,7 +8,7 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -125,7 +125,7 @@ public class ParserTest {
 
     @Test
     public void testRootReturnStatement() throws Exception {
-        BigDecimal result = (BigDecimal) salinas.eval("a = 1;; return a;; a = 10;;a");
+        BigDecimal result = (BigDecimal) salinas.eval("a = 1;; return a;; // dead code follows\na = 10;;a");
         assertEquals(BigDecimal.ONE, result);
     }
 
@@ -172,6 +172,9 @@ public class ParserTest {
 
         // Using legacy syntax
         assertEquals(BigDecimal.valueOf(5), salinas.eval("a[1, 2] = 5;; a[1, 2]"));
+
+        // Two syntaxes are equivalent
+        assertEquals(BigDecimal.valueOf(5), salinas.eval("a[1, 2] = 5;; a[1][2]"));
     }
 
     @Test

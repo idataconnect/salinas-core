@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2013 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 
 package com.idataconnect.salinas;

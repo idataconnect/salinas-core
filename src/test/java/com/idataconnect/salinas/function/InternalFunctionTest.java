@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 

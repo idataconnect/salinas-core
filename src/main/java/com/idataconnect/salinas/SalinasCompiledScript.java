@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2013 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 
 package com.idataconnect.salinas;
@@ -89,7 +89,7 @@ public class SalinasCompiledScript extends CompiledScript {
     public static SalinasCompiledScript compile(final File file,
             final ScriptEngine engine) throws ScriptException {
         try {
-            return compile(new FileReader(file), engine, file.getName());
+            return compile(new FileReader(file), engine, file.getAbsolutePath());
         } catch (FileNotFoundException ex) {
             throw new ScriptException("File not found: " + file.getAbsolutePath());
         }
@@ -113,7 +113,7 @@ public class SalinasCompiledScript extends CompiledScript {
             SalinasNode root = parser.buildAst();
             SalinasInterpreter.importFunctions(root, engine.getContext());
             root.setFilename(filename);
-            return new SalinasCompiledScript(root, engine);
+            return new SalinasCompiledScript(root, engine, filename);
         } catch (ParseException ex) {
             throw new ScriptException("Parse error: " + ex.getMessage(),
                     filename, ex.currentToken.next.beginLine,

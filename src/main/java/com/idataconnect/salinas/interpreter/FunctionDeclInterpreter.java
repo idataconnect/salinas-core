@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.interpreter;
 
@@ -19,7 +19,7 @@ public class FunctionDeclInterpreter implements InterpreterDelegate {
     private static FunctionDeclInterpreter instance;
 
     /**
-     * Gets a singleton instance of the functinon declaration intrepreter
+     * Gets a singleton instance of the function declaration interpreter
      * delegate instance.
      * @return a singleton instance
      */
@@ -52,9 +52,10 @@ public class FunctionDeclInterpreter implements InterpreterDelegate {
             } else {
                 ((SalinasNode) node.jjtGetParent()).getFirstVariableHolder()
                         .setVariable((String) identifierNode.jjtGetValue(),
-                        function);
+                        function, context);
             }
             if (identifierNode.jjtGetNumChildren() > 0) {
+                // has strong type
                 assert ((SalinasNode) identifierNode.jjtGetChild(0)).getId()
                         == JJTDATATYPE;
                 final SalinasType dataType = (SalinasType) ((SalinasNode)

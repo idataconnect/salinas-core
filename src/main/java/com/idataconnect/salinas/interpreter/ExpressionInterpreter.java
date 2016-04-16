@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.interpreter;
 
@@ -238,13 +238,13 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                     }
                 }
                 if (isPublic) {
-                    SalinasInterpreter.setPublicVariable(
-                            (String) identifierNode.jjtGetValue(),
-                            returnValue, context);
+                    context.getBindings(ScriptContext.ENGINE_SCOPE)
+                            .put(identifierNode.jjtGetValue().toString().toUpperCase(),
+                            returnValue);
                 } else {
                     node.getFirstVariableHolder()
                             .setVariable((String) identifierNode.jjtGetValue(),
-                            returnValue);
+                            returnValue, context);
                 }
 
                 if (variableNode.getId() == JJTARRAYACCESS) {

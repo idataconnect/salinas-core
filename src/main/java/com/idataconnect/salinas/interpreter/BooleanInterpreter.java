@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.interpreter;
 
@@ -33,12 +33,12 @@ public class BooleanInterpreter implements InterpreterDelegate {
     public SalinasValue interpret(SalinasNode node, ScriptContext context)
             throws SalinasException {
         if (node.getId() == JJTBOOLEANNOT) {
-            return SalinasInterpreter.interpret((SalinasNode) node.jjtGetChild(0), context)
+            return SalinasInterpreter.interpret(node.getChild(0), context)
                     .asType(SalinasType.BOOLEAN).equals(Boolean.TRUE)
                     ? SalinasValue.FALSE : SalinasValue.TRUE;
         }
         
-        SalinasValue currentValue = null;
+        SalinasValue currentValue;
         for (int count = 0; count < node.jjtGetNumChildren(); count++) {
             SalinasNode operandNode = (SalinasNode) node.jjtGetChild(count);
             currentValue = SalinasInterpreter

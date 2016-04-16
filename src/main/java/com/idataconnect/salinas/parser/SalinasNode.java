@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2011-2012 i Data Connect!
+ * Copyright (c) 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.parser;
 
 import com.idataconnect.salinas.data.SalinasValue;
-import com.idataconnect.salinas.interpreter.SalinasInterpreter;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Locale;
+import javax.script.Bindings;
 import javax.script.ScriptContext;
+import javax.script.SimpleBindings;
 
 /**
  * Base class of all Salinas nodes.
@@ -33,7 +33,8 @@ public class SalinasNode extends SimpleNode {
     private String filename;
     private int beginLine = -1;
     private int beginColumn = -1;
-    private Map<String, SalinasValue> variables;
+    
+    private ScriptContext context;
 
     /**
      * Creates a new Salinas node.
@@ -54,6 +55,19 @@ public class SalinasNode extends SimpleNode {
         super(p, i);
     }
 
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+
+        // If any variables have been set for this node, free them on destroy
+        if (context != null) {
+            final Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
+            if (bindings != null) {
+                bindings.remove(this);
+            }
+        }
+    }
+
     /**
      * Gets a variable visible to this node. This is equivalent to calling
      * {@link #getVariable(java.lang.String, boolean) getVariable(name, true)}.
@@ -63,6 +77,7 @@ public class SalinasNode extends SimpleNode {
      * @return the variable, or <code>null</code> if the variable was not found
      */
     public SalinasValue getVariable(String name, ScriptContext context) {
+        this.context = context;
         return getVariable(name, true, context);
     }
 
@@ -78,27 +93,42 @@ public class SalinasNode extends SimpleNode {
      */
     public SalinasValue getVariable(String name, boolean fullScope,
             ScriptContext context) {
-        SalinasValue fetchedValue = null;
+        this.context = context;
+        Object fetchedValue = null;
+        
+        Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
 
-        if (fullScope) {
-            SalinasNode currentNode = this;
+        SalinasNode currentNode = this;
+        
+        final String nameKey = nameKey(name);
 
-            do {
-                if (currentNode.variables != null) {
-                    fetchedValue = currentNode.variables.get(name.toUpperCase());
-                }
-                currentNode = (SalinasNode) currentNode.jjtGetParent();
-            } while (fetchedValue == null && currentNode != null);
-        } else if (variables != null) {
-            fetchedValue = variables.get(name.toUpperCase());
+        do {
+            fetchedValue = bindings.get(String.valueOf(currentNode.hashCode()));
+            if (fetchedValue instanceof Bindings) {
+                fetchedValue = ((Bindings) fetchedValue).get(nameKey);
+            } else if (fetchedValue != null) {
+                return SalinasValue.valueOf(fetchedValue);
+            }
+            currentNode = fullScope ? (SalinasNode) currentNode.jjtGetParent()
+                                    : null;
+        } while (fetchedValue == null && currentNode != null);
+        
+        if (fetchedValue == null) {
+            if ((fetchedValue = bindings.get(nameKey(name))) == null) {
+                return null;
+            }
         }
 
-        if (fullScope && fetchedValue == null && context != null) {
-            // Try to find the variable as a public variable
-            fetchedValue = SalinasInterpreter.getPublicVariable(name, context);
-        }
+        return SalinasValue.valueOf(fetchedValue);
+    }
 
-        return fetchedValue;
+    /**
+     * Gets the key that the name will be stored under, in the bindings.
+     * @param name the name that will be converted to a bindings key
+     * @return the key that the name will be stored under, in the bindings
+     */
+    static String nameKey(String name) {
+        return name.toUpperCase(Locale.ROOT);
     }
 
     /**
@@ -107,14 +137,25 @@ public class SalinasNode extends SimpleNode {
      *
      * @param name the name of the variable
      * @param value the value of the variable
+     * @param context the script context
      * @return the value that was set
      */
-    public SalinasValue setVariable(String name, SalinasValue value) {
-        assert getFirstVariableHolder() == this : "Attempted to assign a variable to a node which is not a variable holder. Node ID=" + this.getId();
-        if (variables == null) {
-            variables = new HashMap<String, SalinasValue>(32);
+    public SalinasValue setVariable(String name, SalinasValue value,
+            ScriptContext context) {
+        this.context = context;
+        assert getFirstVariableHolder() == this : "Attempted to assign a variable to a node that is not a variable holder. Node ID=" + this.getId();
+        final Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
+        if (jjtGetParent() == null) {
+            // Global
+            return (SalinasValue) bindings.put(nameKey(name), value);
+        } else {
+            Bindings nodeBindings = (Bindings) bindings.get(String.valueOf(hashCode()));
+            if (nodeBindings == null) {
+                nodeBindings = new SimpleBindings();
+                bindings.put(String.valueOf(hashCode()), nodeBindings);
+            }
+            return (SalinasValue) nodeBindings.put(nameKey(name), value);
         }
-        return variables.put(name.toUpperCase(), value);
     }
 
     /**
@@ -122,10 +163,12 @@ public class SalinasNode extends SimpleNode {
      * {@link #unsetVariable(java.lang.String, boolean) unsetVariable(name, true)}.
      *
      * @param name the name of the variable
+     * @param context the script context
      * @return the variable, or <code>null</code> if the variable was not found
      */
-    public SalinasValue unsetVariable(String name) {
-        return unsetVariable(name, true);
+    public SalinasValue unsetVariable(String name, ScriptContext context) {
+        this.context = context;
+        return unsetVariable(name, true, context);
     }
 
     /**
@@ -135,21 +178,26 @@ public class SalinasNode extends SimpleNode {
      *
      * @param name the name of the variable
      * @param fullScope whether to search parent nodes for the variable to unset
+     * @param context the script context
      * @return the variable that was unset, or <code>null</code> if it was not
      * found
      */
-    public SalinasValue unsetVariable(String name, boolean fullScope) {
+    public SalinasValue unsetVariable(String name, boolean fullScope,
+            ScriptContext context) {
+        this.context = context;
+        final Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
         if (fullScope) {
             SalinasValue returnValue;
-            if (variables != null && (returnValue = variables.remove(name.toUpperCase())) != null) {
+            if ((returnValue = (SalinasValue) bindings.remove(String.valueOf(hashCode()))) != null) {
                 return returnValue;
             } else if (jjtGetParent() != null) {
-                return ((SalinasNode) jjtGetParent()).unsetVariable(name, true);
+                // TODO iteration rather than recursion
+                return ((SalinasNode) jjtGetParent()).unsetVariable(name, true, context);
             } else {
                 return null;
             }
         } else {
-            return variables == null ? null : variables.remove(name.toUpperCase());
+            return (SalinasValue) bindings.remove(name);
         }
     }
 

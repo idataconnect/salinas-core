@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 i Data Connect!
+ * Copyright 2011-2016 i Data Connect!
  */
 package com.idataconnect.salinas.interpreter;
 
@@ -41,7 +41,7 @@ public class ForInterpreter implements InterpreterDelegate {
         SalinasValue indexValue = node.getVariable(identifierName, context);
         if (indexValue == null) {
             indexValue = new SalinasValue(BigDecimal.ZERO, SalinasType.NUMBER, true);
-            node.setVariable(identifierName, indexValue);
+            node.setVariable(identifierName, indexValue, context);
         }
 
         SalinasValue step = new SalinasValue(BigDecimal.ONE, SalinasType.NUMBER, true);
