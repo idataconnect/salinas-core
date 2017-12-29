@@ -127,7 +127,9 @@ public class SalinasCompiledScript extends CompiledScript {
 
     @Override
     public Object eval(ScriptContext context) throws ScriptException {
-        ast.dump("");
+        if (System.getProperty("salinas.debug.ast") != null) {
+            ast.dump("");
+        }
         return run(ast, context);
     }
 

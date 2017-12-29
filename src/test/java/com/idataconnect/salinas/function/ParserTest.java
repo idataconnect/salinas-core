@@ -193,4 +193,13 @@ public class ParserTest {
     public void testSplitLines() throws Exception {
         assertEquals(BigDecimal.ONE, salinas.eval("_t = ;\n1;;_t"));
     }
+
+    @Test
+    public void testFunctionNotFound() throws Exception {
+        try {
+            salinas.eval("nonexistent()");
+        } catch (ScriptException ex) {
+            assertTrue(ex.getMessage().contains("not found"));
+        }
+    }
 }
