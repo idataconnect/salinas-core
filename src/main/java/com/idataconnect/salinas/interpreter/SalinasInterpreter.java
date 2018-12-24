@@ -4,16 +4,13 @@
 package com.idataconnect.salinas.interpreter;
 
 import com.idataconnect.salinas.SalinasException;
-import com.idataconnect.salinas.data.ConversionException;
 import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
+import com.idataconnect.salinas.parser.SalinasParserTreeConstants;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.script.Bindings;
 import javax.script.ScriptContext;
 
 /**
@@ -116,7 +113,7 @@ public class SalinasInterpreter {
         }
         
         InterpreterDelegate delegate = getDelegate(node.getId());
-        assert delegate != null : "No interpreter delegate for node ID " + node.getId();
+        assert delegate != null : "No interpreter delegate for " + SalinasParserTreeConstants.jjtNodeName[node.getId()];
 
         return delegate.interpret(node, context);
     }
