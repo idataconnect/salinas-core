@@ -1,6 +1,5 @@
 package com.idataconnect.salinas.parser;
 
-import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.function.CallStack;
 import java.util.LinkedList;
 import java.util.List;
@@ -90,10 +89,11 @@ public class Test {
 //            codes.add("a['test'] = 'testing';; a[2] = 'blah';; ? a['test'];; ? a[2]"); // different types stored in an array
 //            codes.add("a = {1, {2 / 3}, 3, 'string', {'nested array :)'}, {1/1/01}, {^2001-01-01}}"); // array literals, differentiated from dates
             ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("salinas");
-            System.out.println(scriptEngine.getFactory().getEngineName() + " " + scriptEngine.getFactory().getLanguageVersion());
             if (scriptEngine == null) {
                 System.err.println("Can't find salinas script engine");
+                System.exit(1);
             }
+            System.out.println(scriptEngine.getFactory().getEngineName() + " " + scriptEngine.getFactory().getLanguageVersion());
 
             context = scriptEngine.getContext();
 
@@ -103,7 +103,7 @@ public class Test {
             for (String code : codes) {
                 System.out.println("-------------\n" + code + "\n-------------");
                 value = (scriptEngine.eval(code));
-                System.out.println("\nResult: " + (value == null ? "<null>" : 
+                System.out.println("\nResult: " + (value == null ? "<null>" :
                         value));
                 System.out.println();
             }

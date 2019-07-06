@@ -16,9 +16,9 @@ import javax.script.ScriptEngineFactory;
 public class SalinasScriptEngineFactory implements ScriptEngineFactory{
 
     /** An instance of the newline character(s) for the current system. */
-    public static final String newLine = System.getProperty("line.separator", "\n");
+    public static final String NEW_LINE = System.getProperty("line.separator");
 
-    private static final SalinasScriptEngineFactory instance =
+    private static final SalinasScriptEngineFactory INSTANCE =
             new SalinasScriptEngineFactory();
 
     @Override
@@ -61,7 +61,8 @@ public class SalinasScriptEngineFactory implements ScriptEngineFactory{
 
     @Override
     public String getLanguageVersion() {
-        return getClass().getPackage().getImplementationVersion();
+        String implVersion = getClass().getPackage().getImplementationVersion();
+        return implVersion != null ? implVersion : "UNKNOWN";
     }
 
     @Override
@@ -106,7 +107,7 @@ public class SalinasScriptEngineFactory implements ScriptEngineFactory{
     public String getProgram(String... statements) {
         StringBuilder sb = new StringBuilder(statements.length * 40);
         for (String statement : statements) {
-            sb.append(statement).append(newLine);
+            sb.append(statement).append(NEW_LINE);
         }
 
         return sb.toString();
@@ -123,6 +124,6 @@ public class SalinasScriptEngineFactory implements ScriptEngineFactory{
      * @return a factory instance
      */
     public static SalinasScriptEngineFactory getInstance() {
-        return instance;
+        return INSTANCE;
     }
 }

@@ -507,7 +507,7 @@ void Literal() #void : {}
 
 void DateLiteral() #Date : {Token t;}
 {
-    t = <DATE_LITERAL> 
+    t = <DATE_LITERAL>
     {initNode(jjtThis, t); jjtThis.jjtSetValue(t.image); t = null;}
 }
 
@@ -520,13 +520,13 @@ void NumberLiteral() #Number : {Token t;}
 void StringLiteral() #String : {Token t;}
 {
     t = <STRING_LITERAL>
-    {initNode(jjtThis, t); jjtThis.jjtSetValue(t.image); t = null; }
+    {initNode(jjtThis, t); jjtThis.jjtSetValue(t.image); t = null;}
 }
 
 void BooleanLiteral() #Boolean : {Token t;}
 {
-    (t = <TRUE> {initNode(jjtThis, t); jjtThis.jjtSetValue(Boolean.TRUE);}
-    | t = <FALSE> {initNode(jjtThis, t); jjtThis.jjtSetValue(Boolean.FALSE);})
+    (t = <TRUE> {initNode(jjtThis, t); jjtThis.jjtSetValue(Boolean.TRUE); t = null;}
+    | t = <FALSE> {initNode(jjtThis, t); jjtThis.jjtSetValue(Boolean.FALSE); t = null;})
 }
 
 void NullLiteral() #Null : {} {<NULL>}
