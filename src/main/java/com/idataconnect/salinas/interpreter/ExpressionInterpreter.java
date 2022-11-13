@@ -1,11 +1,12 @@
 /*
- * Copyright 2011-2016 i Data Connect!
+ * Copyright 2011-2021 i Data Connect!
  */
 package com.idataconnect.salinas.interpreter;
 
 import com.idataconnect.salinas.SalinasConfig;
 import com.idataconnect.salinas.SalinasException;
 import com.idataconnect.salinas.data.ComparativeOp;
+import com.idataconnect.salinas.data.ConversionException;
 import com.idataconnect.salinas.data.SalinasArrayMap;
 import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
@@ -42,7 +43,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
     public SalinasValue interpret(SalinasNode node, ScriptContext context)
             throws SalinasException {
         final SalinasConfig config = (SalinasConfig) context.getAttribute("salinasConfig");
-        
+
         SalinasValue returnValue;
 
         List<?> opTypes;
@@ -52,7 +53,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                 Iterator<?> i = opTypes.iterator();
                 boolean addStrings = false;
                 boolean moveSpacesToEnd = false;
-                List<SalinasValue> values = new LinkedList<SalinasValue>();
+                List<SalinasValue> values = new LinkedList<>();
                 for (int count = 0; count < node.jjtGetNumChildren(); count++) {
                     Integer opType = null;
                     if (i.hasNext()) {
@@ -149,7 +150,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                         = SalinasInterpreter.interpret(expressionNode, context);
 
                 SalinasValue existingVar = null;
-                
+
                 if (variableNode.getId() == JJTIDENTIFIER) {
                     existingVar = node.getVariable(
                             (String) variableNode.jjtGetValue(), context);
@@ -215,7 +216,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                 } else {
                     returnValue = expressionValue;
                 }
-                
+
                 // Apply modifiers
                 boolean isPublic = false;
                 for (int count = 0; count < variableNode.jjtGetNumChildren(); count++) {
@@ -295,7 +296,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
 
         List<?> opTypes = (List) node.jjtGetValue();
         Iterator<?> i = opTypes.iterator();
-        final List<SalinasValue> values = new LinkedList<SalinasValue>();
+        final List<SalinasValue> values = new LinkedList<>();
         for (int count = 0; count < node.jjtGetNumChildren(); count++) {
             final SalinasValue value = SalinasInterpreter.interpret(
                     (SalinasNode) node.jjtGetChild(count), context);
@@ -308,21 +309,27 @@ public class ExpressionInterpreter implements InterpreterDelegate {
 
         final Iterator<SalinasValue> vi = values.iterator();
         BigDecimal currentValue = (BigDecimal) vi.next().asType(SalinasType.NUMBER);
-        for (int count = 1; i.hasNext(); count++) {
+        while (i.hasNext()) {
             try {
                 final Integer opType = (Integer) i.next();
-                if (opType == SalinasParserConstants.MULT) {
-                    currentValue = currentValue.multiply((BigDecimal) vi.next()
-                            .asType(SalinasType.NUMBER));
-                } else if (opType == SalinasParserConstants.DIV) {
-                    currentValue = currentValue.divide((BigDecimal) vi.next()
-                            .asType(SalinasType.NUMBER), config.getPrecision(), RoundingMode.HALF_EVEN);
-                } else if (opType == SalinasParserConstants.MOD) {
-                    currentValue = currentValue.remainder((BigDecimal) vi.next()
-                            .asType(SalinasType.NUMBER));
-                } else if (opType == SalinasParserConstants.EXP) {
-                    currentValue = currentValue.pow(((BigDecimal) vi.next()
-                            .asType(SalinasType.NUMBER)).intValue());
+                assert opType != null;
+                switch (opType) {
+                    case SalinasParserConstants.MULT:
+                        currentValue = currentValue.multiply((BigDecimal) vi.next()
+                                .asType(SalinasType.NUMBER));
+                        break;
+                    case SalinasParserConstants.DIV:
+                        currentValue = currentValue.divide((BigDecimal) vi.next()
+                                .asType(SalinasType.NUMBER), config.getPrecision(), RoundingMode.HALF_EVEN);
+                        break;
+                    case SalinasParserConstants.MOD:
+                        currentValue = currentValue.remainder((BigDecimal) vi.next()
+                                .asType(SalinasType.NUMBER));
+                        break;
+                    case SalinasParserConstants.EXP:
+                        currentValue = currentValue.pow(((BigDecimal) vi.next()
+                                .asType(SalinasType.NUMBER)).intValue());
+                        break;
                 }
             } catch (ArithmeticException ex) {
                 throw new SalinasException("Arithmetic error: " + ex.getMessage(),
@@ -339,7 +346,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
         boolean usingStrings = false;
         List<?> opTypes = (List) node.jjtGetValue();
         Iterator<?> i = opTypes.iterator();
-        final List<SalinasValue> values = new LinkedList<SalinasValue>();
+        final List<SalinasValue> values = new LinkedList<>();
         for (int count = 0; count < node.jjtGetNumChildren(); count++) {
             SalinasValue value = SalinasInterpreter.interpret(
                     (SalinasNode) node.jjtGetChild(count), context);
@@ -347,7 +354,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                 value = SalinasValue.NULL;
             }
             values.add(value);
-            
+
             if (value.getCurrentType() == SalinasType.STRING) {
                 usingStrings = true;
             }
@@ -378,5 +385,10 @@ public class ExpressionInterpreter implements InterpreterDelegate {
         }
 
         return currentValue;
+    }
+
+    public void applyDecimals(SalinasValue numericValue, SalinasConfig config)
+            throws ConversionException {
+        numericValue.setValue(numericValue.asNumber().setScale(config.getPrecision()));
     }
 }

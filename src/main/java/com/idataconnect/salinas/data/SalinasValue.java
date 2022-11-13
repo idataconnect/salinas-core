@@ -206,7 +206,7 @@ public class SalinasValue {
      * if necessary.
      *
      * @param currentType the current type in the <code>value</code> field
-     * @throws conversionException if an error occurs while converting the current
+     * @throws ConversionException if an error occurs while converting the current
      * value to the new type
      */
     public void setCurrentType(SalinasType currentType) throws ConversionException {
@@ -353,6 +353,42 @@ public class SalinasValue {
         } else {
             return getCurrentType().convert(type, value);
         }
+    }
+
+    /**
+     * Convenience method for returning a value as a number, represented as
+     * a {@code BigDecimal}.
+     * @return the raw BigDecimal value
+     * @throws ConversionException if the value could not be converted to
+     * a number, either because its type is incompatible, or it is a different
+     * type and strong typing is enabled for this value
+     */
+    public BigDecimal asNumber() throws ConversionException {
+        return (BigDecimal) asType(SalinasType.NUMBER);
+    }
+
+    /**
+     * Convenience method for returning a value as a boolean, represented as
+     * a {@code Boolean}.
+     * @return the raw Boolean value
+     * @throws ConversionException if the value could not be converted to
+     * a boolean, either because its type is incompatible, or it is a different
+     * type and strong typing is enabled for this value
+     */
+    public Boolean asBoolean() throws ConversionException {
+        return (Boolean) asType(SalinasType.BOOLEAN);
+    }
+
+    /**
+     * Convenience method for returning a value as a string, represented as
+     * a {@code String}.
+     * @return the raw String value
+     * @throws ConversionException if the value could not be converted to
+     * a string, either because its type is incompatible, or it is a different
+     * type and strong typing is enabled for this value
+     */
+    public String asString() throws ConversionException {
+        return (String) asType(SalinasType.STRING);
     }
 
     /**
