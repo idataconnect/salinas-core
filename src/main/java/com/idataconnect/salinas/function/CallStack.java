@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class CallStack {
 
-    private final Deque<StackFrame> stack = new LinkedList<StackFrame>();
+    private final Deque<StackFrame> stack = new LinkedList<>();
 
     /**
      * Pushes a stack frame onto the call stack.

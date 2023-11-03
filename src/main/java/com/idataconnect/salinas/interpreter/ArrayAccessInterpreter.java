@@ -10,6 +10,7 @@ import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
+import java.util.Optional;
 import javax.script.ScriptContext;
 
 /**
@@ -45,21 +46,20 @@ public class ArrayAccessInterpreter implements InterpreterDelegate {
         final SalinasNode identifierNode = (SalinasNode) node.jjtGetChild(0);
         assert identifierNode.getId() == JJTIDENTIFIER;
         // Try to find an existing variable
-        final SalinasValue existingArray = node.getVariable(
+        Optional<SalinasValue> existingArray = node.getVariable(
                 (String) identifierNode.jjtGetValue(), context);
-        if (existingArray != null) {
-            if (existingArray.getCurrentType() != SalinasType.ARRAY) {
+        if (existingArray.isPresent()) {
+            if (existingArray.get().getCurrentType() != SalinasType.ARRAY) {
                 throw new ConversionException(identifierNode.jjtGetValue()
                         + " is not an array", node.getFilename(),
                         node.getBeginLine(), node.getBeginColumn());
             }
-
         } else {
             return SalinasValue.UNDEFINED;
         }
 
         // We now have the array variable; walk the indices
-        SalinasValue currentValue = existingArray;
+        SalinasValue currentValue = existingArray.get();
         int index = 1;
         SalinasNode segmentNode;
         SalinasValue expressionValue;

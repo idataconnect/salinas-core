@@ -4,7 +4,6 @@
 package com.idataconnect.salinas.function;
 
 import java.math.BigDecimal;
-import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import static org.junit.Assert.*;
@@ -17,12 +16,10 @@ import org.junit.Test;
 public class InternalFunctionTest {
     
     private ScriptEngine salinas;
-    private ScriptContext context;
 
     @Before
     public void setup() throws Exception {
         salinas = new ScriptEngineManager().getEngineByName("salinas");
-        context = salinas.getContext();
     }
 
     @Test
@@ -79,6 +76,7 @@ public class InternalFunctionTest {
 
     @Test
     public void testRound() throws Exception {
+        System.setProperty("salinas.debug.ast", "true");
         BigDecimal number = (BigDecimal) salinas.eval("ROUND(20.1)");
         assertEquals(BigDecimal.valueOf(20).stripTrailingZeros(), number.stripTrailingZeros());
         number = (BigDecimal) salinas.eval("ROUND(20.1, 2)");
@@ -168,5 +166,6 @@ public class InternalFunctionTest {
     @Test
     public void testCenter() throws Exception {
         assertEquals("*a**", salinas.eval("CENTER('a', 4, '*')"));
+        assertEquals("**centered**", salinas.eval("CENTER('centered', 12, '*')"));
     }
 }

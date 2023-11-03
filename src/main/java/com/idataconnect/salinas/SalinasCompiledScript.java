@@ -8,20 +8,19 @@ import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.function.CallStack;
 import com.idataconnect.salinas.function.FunctionContext;
 import com.idataconnect.salinas.interpreter.SalinasInterpreter;
-import com.idataconnect.salinas.io.TerminatingReader;
 import com.idataconnect.salinas.parser.ParseException;
 import com.idataconnect.salinas.parser.SalinasNode;
 import com.idataconnect.salinas.parser.SalinasParser;
 import com.idataconnect.salinas.parser.TokenMgrError;
 import java.io.*;
+import java.nio.charset.Charset;
 import javax.script.CompiledScript;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
 /**
- * JSR-233 CompiledScript implementation for Salinas. Salinas is tightly
- * coupled with the JSR-233 APIs and this class kickstarts the interpreter.
+ * JSR-233 CompiledScript implementation for Salinas.
  */
 public class SalinasCompiledScript extends CompiledScript {
     
@@ -80,7 +79,7 @@ public class SalinasCompiledScript extends CompiledScript {
     }
 
     /**
-     * Compiles a script using the given file.
+     * Compiles a script using the given file, using the default character set.
      * @param file the file to read the script from
      * @param engine the engine used to parse the script
      * @return a compiled script instance
@@ -88,10 +87,29 @@ public class SalinasCompiledScript extends CompiledScript {
      */
     public static SalinasCompiledScript compile(final File file,
             final ScriptEngine engine) throws ScriptException {
+        return compile(file, Charset.defaultCharset(), engine);
+    }
+
+    /**
+     * Compiles a script using the given file and character set.
+     * @param file the file to read the script from
+     * @param charset the character set used when reading the text file
+     * @param engine the engine used to parse the script
+     * @return a compiled script instance
+     * @throws ScriptException if an error occurs during compilation
+     */
+    public static SalinasCompiledScript compile(
+            File file,
+            Charset charset,
+            ScriptEngine engine) throws ScriptException {
         try {
-            return compile(new FileReader(file), engine, file.getAbsolutePath());
+            return compile(new FileReader(file, charset), engine, file.getAbsolutePath());
         } catch (FileNotFoundException ex) {
             throw new ScriptException("File not found: " + file.getAbsolutePath());
+        } catch (IOException ex) {
+            ScriptException se = new ScriptException("I/O Error for file: " + file.getAbsolutePath());
+            se.initCause(ex);
+            throw se;
         }
     }
 
@@ -109,7 +127,7 @@ public class SalinasCompiledScript extends CompiledScript {
             final String filename)
             throws ScriptException {
         try {
-            SalinasParser parser = new SalinasParser(new TerminatingReader(reader));
+            SalinasParser parser = new SalinasParser(reader);
             SalinasNode root = parser.buildAst();
             SalinasInterpreter.importFunctions(root, engine.getContext());
             root.setFilename(filename);

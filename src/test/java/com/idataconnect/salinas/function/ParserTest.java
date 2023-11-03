@@ -36,15 +36,15 @@ public class ParserTest {
     public void testBinaryLiteral() throws Exception {
         assertEquals(BigDecimal.TEN, salinas.eval("0b1010"));
         assertEquals(BigDecimal.TEN, salinas.eval("0b10_10"));
-        assertEquals(BigDecimal.valueOf(0x3f), salinas.eval("0b111111"));
+        assertEquals(BigDecimal.valueOf(0b111111), salinas.eval("0b111111"));
     }
 
     @Test
     public void testHexLiteral() throws Exception {
-        assertEquals(BigDecimal.valueOf(15), salinas.eval("0xf"));
-        assertEquals(BigDecimal.valueOf(255), salinas.eval("0xFF"));
-        assertEquals(BigDecimal.valueOf(65535), salinas.eval("0xFF_FF"));
-        assertEquals(BigDecimal.valueOf(11259375), salinas.eval("0xabcdef"));
+        assertEquals(BigDecimal.valueOf(0xf), salinas.eval("0xf"));
+        assertEquals(BigDecimal.valueOf(0xff), salinas.eval("0xFF"));
+        assertEquals(BigDecimal.valueOf(0xffff), salinas.eval("0xFF_FF"));
+        assertEquals(BigDecimal.valueOf(0xabcdef), salinas.eval("0xabcdef"));
     }
 
     @Test
@@ -53,24 +53,27 @@ public class ParserTest {
         assertEquals(BigDecimal.valueOf(10.11), salinas.eval("1_0.1_1"));
         try {
             assertEquals(BigDecimal.valueOf(10.11), salinas.eval("1_0._1_1"));
+            fail();
         } catch (ScriptException ex) {
             // Good
         }
         try {
             assertEquals(BigDecimal.valueOf(10.11), salinas.eval("1_0_.1_1"));
-        } catch (ScriptException ex) {
-            // Good
-        }
-        try {
-            assertEquals(BigDecimal.valueOf(10.11), salinas.eval("1_0.1_1_"));
+            fail("Trailing underscore before decimal is not allowed");
         } catch (ScriptException ex) {
             // Good
         }
 
         try {
             assertEquals(BigDecimal.valueOf(10.11), salinas.eval("? _1_0.1_1"));
+            fail("Leading underscore makes an identifier, and periods can't appear in them");
         } catch (ScriptException ex) {
-            // Good - period can't appear in identifier so it crashes
+        }
+
+        try {
+            salinas.eval("1_0.1_1_");
+            fail("Cannot have trailing underscores in numeric literals");
+        } catch (ScriptException ex) {
         }
     }
 

@@ -6,6 +6,7 @@ package com.idataconnect.salinas.parser;
 import com.idataconnect.salinas.data.SalinasValue;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
 import java.util.Locale;
+import java.util.Optional;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.SimpleBindings;
@@ -16,7 +17,7 @@ import javax.script.SimpleBindings;
 public class SalinasNode extends SimpleNode {
 
     /**
-     * The types of nodes which may hold variables. {@link #setVariable} should
+     * The types of nodes that may hold variables. {@link #setVariable} should
      * only be called on nodes of these types. To discover the closest parent in
      * the tree which should hold variables, use
      * {@link #getFirstVariableHolder()}.
@@ -34,8 +35,6 @@ public class SalinasNode extends SimpleNode {
     private int beginLine = -1;
     private int beginColumn = -1;
     
-    private ScriptContext context;
-
     /**
      * Creates a new Salinas node.
      * @param i the AST ID of the node
@@ -55,29 +54,15 @@ public class SalinasNode extends SimpleNode {
         super(p, i);
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-
-        // If any variables have been set for this node, free them on destroy
-        if (context != null) {
-            final Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
-            if (bindings != null) {
-                bindings.remove(this);
-            }
-        }
-    }
-
     /**
      * Gets a variable visible to this node. This is equivalent to calling
-     * {@link #getVariable(java.lang.String, boolean) getVariable(name, true)}.
+     * {@link #getVariable(String, boolean) getVariable(name, true)}.
      *
      * @param name the name of the variable
      * @param context the script context
-     * @return the variable, or <code>null</code> if the variable was not found
+     * @return the optional variable value, present if the variable was found
      */
-    public SalinasValue getVariable(String name, ScriptContext context) {
-        this.context = context;
+    public Optional<SalinasValue> getVariable(String name, ScriptContext context) {
         return getVariable(name, true, context);
     }
 
@@ -89,11 +74,10 @@ public class SalinasNode extends SimpleNode {
      * @param name the name of the variable
      * @param fullScope whether or not to search parent nodes
      * @param context the script context
-     * @return the variable, or <code>null</code> if it was not found
+     * @return the optional variable value, present if the variable was found
      */
-    public SalinasValue getVariable(String name, boolean fullScope,
+    public Optional<SalinasValue> getVariable(String name, boolean fullScope,
             ScriptContext context) {
-        this.context = context;
         Object fetchedValue = null;
         
         Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
@@ -107,7 +91,7 @@ public class SalinasNode extends SimpleNode {
             if (fetchedValue instanceof Bindings) {
                 fetchedValue = ((Bindings) fetchedValue).get(nameKey);
             } else if (fetchedValue != null) {
-                return SalinasValue.valueOf(fetchedValue);
+                return Optional.of(SalinasValue.valueOf(fetchedValue));
             }
             currentNode = fullScope ? (SalinasNode) currentNode.jjtGetParent()
                                     : null;
@@ -115,11 +99,11 @@ public class SalinasNode extends SimpleNode {
         
         if (fetchedValue == null) {
             if ((fetchedValue = bindings.get(nameKey(name))) == null) {
-                return null;
+                return Optional.empty();
             }
         }
 
-        return SalinasValue.valueOf(fetchedValue);
+        return Optional.of(SalinasValue.valueOf(fetchedValue));
     }
 
     /**
@@ -142,7 +126,6 @@ public class SalinasNode extends SimpleNode {
      */
     public SalinasValue setVariable(String name, SalinasValue value,
             ScriptContext context) {
-        this.context = context;
         assert getFirstVariableHolder() == this : "Attempted to assign a variable to a node that is not a variable holder. Node ID=" + this.getId();
         final Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
         if (jjtGetParent() == null) {
@@ -167,7 +150,6 @@ public class SalinasNode extends SimpleNode {
      * @return the variable, or <code>null</code> if the variable was not found
      */
     public SalinasValue unsetVariable(String name, ScriptContext context) {
-        this.context = context;
         return unsetVariable(name, true, context);
     }
 
@@ -184,7 +166,6 @@ public class SalinasNode extends SimpleNode {
      */
     public SalinasValue unsetVariable(String name, boolean fullScope,
             ScriptContext context) {
-        this.context = context;
         final Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
         if (fullScope) {
             SalinasValue returnValue;
@@ -199,16 +180,6 @@ public class SalinasNode extends SimpleNode {
         } else {
             return (SalinasValue) bindings.remove(name);
         }
-    }
-
-    /**
-     * Gets the abstract syntax tree identifier of the current node. This
-     * enables the caller to discover the node type without using reflection.
-     *
-     * @return the AST ID
-     */
-    public int getId() {
-        return id;
     }
 
     /**

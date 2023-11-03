@@ -43,13 +43,9 @@ public class FunctionCallInterpreter implements InterpreterDelegate {
         final FunctionContext functionContext = (FunctionContext) context
                 .getAttribute("salinasFunctionContext", ScriptContext.ENGINE_SCOPE);
         Function function = functionContext.getFunction(
-                (String) identifierNode.jjtGetValue(), node);
-        
-        if (function == null) {
-            throw new FunctionCallException("Function "
-                    + identifierNode.jjtGetValue() + " not found",
-                    node.getFilename(), node.getBeginLine(), node.getBeginColumn());
-        }
+                (String) identifierNode.jjtGetValue(), node).orElseThrow(() -> new FunctionCallException("Function "
+                + identifierNode.jjtGetValue() + " not found",
+                node.getFilename(), node.getBeginLine(), node.getBeginColumn()));
         
         SalinasValue returnValue;
         int segmentCount = 1;

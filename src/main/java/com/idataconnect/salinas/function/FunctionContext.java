@@ -7,8 +7,9 @@ import com.idataconnect.salinas.SalinasException;
 import com.idataconnect.salinas.data.ConversionException;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.script.ScriptContext;
 
 /**
@@ -24,7 +25,7 @@ public class FunctionContext {
             = new UserDefinedFunctionProvider(this);
     private ScriptContext scriptContext;
     private final List<FunctionProvider> providers
-            = new LinkedList<FunctionProvider>();
+            = new ArrayList<>(8);
 
     /**
      * Creates a new function context.
@@ -47,17 +48,17 @@ public class FunctionContext {
         return scriptContext;
     }
 
-    public Function getFunction(String name, SalinasNode node)
-            throws ConversionException{
-        Function function = null;
+    public Optional<Function> getFunction(String name, SalinasNode node)
+            throws ConversionException {
+        Optional<Function> function;
         for (FunctionProvider provider : providers) {
             function = provider.getFunction(name, node);
-            if (function != null) {
-                break;
+            if (function.isPresent()) {
+                return function;
             }
         }
 
-        return function;
+        return Optional.empty();
     }
 
     /**
@@ -80,19 +81,13 @@ public class FunctionContext {
     public SalinasValue call(String name, SalinasNode node, SalinasValue... parameters)
             throws FunctionCallException, SalinasException {
 
-        Function function = null;
-        for (FunctionProvider provider : providers) {
-            function = provider.getFunction(name, node);
-            if (function != null) {
-                break;
-            }
-        }
+        Optional<Function> function = getFunction(name, node);
 
-        if (function == null) {
+        if (function.isEmpty()) {
             throw new FunctionCallException("Unknown function: " + name,
                     node.getFilename(), node.getBeginLine(), node.getBeginColumn());
         }
 
-        return function.call(getScriptContext(), parameters);
+        return function.get().call(getScriptContext(), parameters);
     }
 }

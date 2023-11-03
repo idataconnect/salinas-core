@@ -45,7 +45,7 @@ public class FunctionDeclInterpreter implements InterpreterDelegate {
             identifierNode = (SalinasNode) node
                     .jjtGetChild(0);
             SalinasValue value = node.getVariable(
-                    (String) identifierNode.jjtGetValue(), context);
+                    (String) identifierNode.jjtGetValue(), context).orElse(null);
 
             if (value != null) {
                 value.setValue(function);

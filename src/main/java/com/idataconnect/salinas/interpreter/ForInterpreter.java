@@ -38,11 +38,11 @@ public class ForInterpreter implements InterpreterDelegate {
         assert ((SalinasNode) node.jjtGetChild(0)).getId() == JJTIDENTIFIER;
         SalinasNode identifierNode = (SalinasNode) node.jjtGetChild(0);
         final String identifierName = (String) identifierNode.jjtGetValue();
-        SalinasValue indexValue = node.getVariable(identifierName, context);
-        if (indexValue == null) {
-            indexValue = new SalinasValue(BigDecimal.ZERO, SalinasType.NUMBER, true);
-            node.setVariable(identifierName, indexValue, context);
-        }
+        SalinasValue indexValue = node.getVariable(identifierName, context).orElseGet(() -> {
+            SalinasValue v = new SalinasValue(BigDecimal.ZERO, SalinasType.NUMBER, true);
+            node.setVariable(identifierName, v, context);
+            return v;
+        });
 
         SalinasValue step = new SalinasValue(BigDecimal.ONE, SalinasType.NUMBER, true);
         indexValue.setValue(SalinasInterpreter.interpret((SalinasNode) node.jjtGetChild(1),

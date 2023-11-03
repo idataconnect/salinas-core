@@ -99,14 +99,15 @@ TOKEN : { < FUNCTION : "FUNCTION" | "PROCEDURE" > }
 TOKEN : { < ENDFUNC : "ENDFUNC" | "ENDPROC" > }
 TOKEN : { < RETURN : "RETURN" > }
 TOKEN : { < DATE_LITERAL : <UNAMBIGUOUS_DATE_LITERAL> | <AMBIGUOUS_DATE_LITERAL> > }
-TOKEN : { < NUMBER_LITERAL : <DECIMAL_LITERAL> | <HEX_LITERAL> | <BINARY_LITERAL> > }
+TOKEN : { < NUMBER_LITERAL : <INTEGER_LITERAL> | <DECIMAL_LITERAL> | <HEX_LITERAL> | <BINARY_LITERAL> > }
 TOKEN : { < IDENTIFIER : <LETTER> (<LETTER> | <DIGIT>)* > }
 TOKEN : { < STRING_LITERAL : <DOUBLE_QUOTED_STRING_LITERAL> | <SINGLE_QUOTED_STRING_LITERAL> > }
 TOKEN : { < #DOUBLE_QUOTED_STRING_LITERAL : "\"" ( ~["\""] )* "\"" > }
 TOKEN : { < #SINGLE_QUOTED_STRING_LITERAL : "'" ( ~["'"] )* "'" > }
 TOKEN : { < #UNAMBIGUOUS_DATE_LITERAL : "{" "^" (<DIGIT>){4} "-" (<DIGIT>){2} "-" (<DIGIT>){2} "}" > }
 TOKEN : { < #AMBIGUOUS_DATE_LITERAL : "{" (<DIGIT>)+ "/" (<DIGIT>)+ "/" (<DIGIT>)+ "}" > }
-TOKEN : { < #DECIMAL_LITERAL : (<DIGIT> ((<DIGIT> | "_")* <DIGIT>)? ((".") (<DIGIT> (<DIGIT> | "_")*)?)?) | ("." <DIGIT> (<DIGIT> | "_")*) > }
+TOKEN : { < #INTEGER_LITERAL : <DIGIT> ((<DIGIT> | "_")* <DIGIT>)? > }
+TOKEN : { < #DECIMAL_LITERAL : (<DIGIT> ((<DIGIT> | "_")* <DIGIT>)?)? "." <DIGIT> ((<DIGIT> | "_")* <DIGIT>)? > }
 TOKEN : { < #HEX_LITERAL : "0" "x" (<DIGIT> | ["a" - "f"]) (<DIGIT> | ["a" - "f"] | "_")* > }
 TOKEN : { < #BINARY_LITERAL : "0" "b" ("0" | "1") ("0" | "1" | "_")* > }
 TOKEN : { < #DIGIT : ["0" - "9"] > }
@@ -117,14 +118,12 @@ TOKEN : { < #SL_COMMENT_AMPERSANDS : "&&" > }
 SalinasNode buildAst() #SalinasScript : {}
 {
     (TerminatedStatement())*
-    <EOF>
     {return jjtThis;}
 }
 
 void TerminatedStatement() #void : {}
 {
-    EndOfStatement()
-    | (Statement() EndOfStatement())
+    Statement() EndOfStatement()
 }
 
 void Statement() : {}
@@ -153,7 +152,7 @@ void AssignmentStatement() #Assign : {}
 
 void EndOfStatement() #void : {}
 {
-    <EOL> | <DOUBLE_SEMICOLON>
+    <EOL> | <EOF> | <DOUBLE_SEMICOLON>
 }
 
 void ReturnStatement() #Return : {Token t;}
@@ -418,7 +417,7 @@ void FunctionCallExpression() #void : {}
 
 void FunctionCallSegment() : {}
 {
-    "(" (LOOKAHEAD(1) Expression() ("," Expression())*)? ")"
+    "(" (Expression() ("," Expression())*)? ")"
 }
 
 void BaseExpression() #void : {}

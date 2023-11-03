@@ -10,6 +10,7 @@ import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.interpreter.SalinasInterpreter;
 import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
+import java.util.Optional;
 import javax.script.ScriptContext;
 
 /**
@@ -101,10 +102,10 @@ public class UserDefinedFunction extends Function {
             final SalinasNode functionNode,
             final ScriptContext context
             ) throws ConversionException {
-        SalinasValue existingVar = functionNode.getVariable(
+        Optional<SalinasValue> existingVar = functionNode.getVariable(
                 (String) identifierNode.jjtGetValue(), false, context);
-        if (existingVar != null) {
-            existingVar.setValue(value);
+        if (existingVar.isPresent()) {
+            existingVar.get().setValue(value);
         } else {
             // TODO consolidate variable setting routines
             final SalinasValue val = value;

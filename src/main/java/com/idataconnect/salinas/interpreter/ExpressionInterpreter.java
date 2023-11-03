@@ -15,10 +15,13 @@ import com.idataconnect.salinas.parser.SalinasParserConstants;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import javax.script.ScriptContext;
+
+// TODO this is currently a catch-all for too many types
 
 /**
  * Interpreter delegate implementation for expression nodes.
@@ -46,18 +49,19 @@ public class ExpressionInterpreter implements InterpreterDelegate {
 
         SalinasValue returnValue;
 
-        List<?> opTypes;
+        List<? extends Integer> opTypes;
         switch (node.getId()) {
             case JJTADDITIVE:
                 opTypes = (List) node.jjtGetValue();
-                Iterator<?> i = opTypes.iterator();
+                Iterator<? extends Integer> i = opTypes.iterator();
                 boolean addStrings = false;
                 boolean moveSpacesToEnd = false;
-                List<SalinasValue> values = new LinkedList<>();
-                for (int count = 0; count < node.jjtGetNumChildren(); count++) {
+                int numChildren = node.jjtGetNumChildren();
+                List<SalinasValue> values = new ArrayList<>(numChildren);
+                for (int count = 0; count < numChildren; count++) {
                     Integer opType = null;
                     if (i.hasNext()) {
-                        opType = (Integer) i.next();
+                        opType = i.next();
                     }
                     final SalinasValue value = SalinasInterpreter.interpret(
                             node.getChild(count), context);
@@ -102,7 +106,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                     BigDecimal currentValue = (BigDecimal) vi.next()
                             .asType(SalinasType.NUMBER);
                     for (int count = 1; i.hasNext(); count++) {
-                        final Integer opType = (Integer) i.next();
+                        final Integer opType = i.next();
                         if (count == 1 && !vi.hasNext()) {
                             // Handle unary minus expression (e.g. "-1")
                             currentValue = BigDecimal.ZERO.subtract(currentValue);
@@ -143,76 +147,82 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                         = (SalinasNode) node.jjtGetChild(0);
                 final SalinasNode expressionNode
                         = (SalinasNode) node.jjtGetChild(1);
-                SalinasNode identifierNode = null;
+                final SalinasNode identifierNode;
 
-                // Interpret
                 final SalinasValue expressionValue
                         = SalinasInterpreter.interpret(expressionNode, context);
 
-                SalinasValue existingVar = null;
+                Optional<SalinasValue> existingVar;
 
-                if (variableNode.getId() == JJTIDENTIFIER) {
-                    existingVar = node.getVariable(
-                            (String) variableNode.jjtGetValue(), context);
-                    identifierNode = variableNode;
-                } else if (variableNode.getId() == JJTARRAYACCESS) {
-                    // First child is identifier
-                    identifierNode = variableNode.getChild(0);
-                    existingVar = node.getVariable(
-                            (String) identifierNode.jjtGetValue(), context);
-                    if (existingVar == null) {
-                        // The array doesn't exist; create it
-                        existingVar = new SalinasValue(
-                                new SalinasArrayMap(), SalinasType.ARRAY);
-                    } else if (existingVar.getCurrentType() != SalinasType.ARRAY) {
-                        throw new SalinasException("Array access attempted on "
-                                + ((SalinasNode) variableNode.jjtGetChild(0))
-                                .jjtGetValue() + "which is of type "
-                                + existingVar.getCurrentType(),
-                                variableNode.getFilename(),
-                                variableNode.getBeginLine(),
-                                variableNode.getBeginColumn());
-                    }
+                switch (variableNode.getId()) {
+                    case JJTIDENTIFIER:
+                        // Assign to variable
+                        existingVar = node.getVariable(
+                                (String) variableNode.jjtGetValue(), context);
+                        identifierNode = variableNode;
+                        break;
+                    case JJTARRAYACCESS:
+                        // Assign inside array
 
-                    SalinasValue previousVar = existingVar;
-                    // Other children are of type ArrayAccessSegment
-                    SalinasArrayMap arrayMap;
-                    SalinasNode childNode;
-                    Object indexValue;
-                    // Chain previous array indices together
-                    for (int count = 1; count < variableNode.jjtGetNumChildren(); count++) {
-                        arrayMap = (SalinasArrayMap) previousVar.getValue();
-                        childNode = variableNode.getChild(count).getChild(0);
-                        indexValue = SalinasInterpreter
-                                .interpret(childNode, context)
-                                .getValue();
+                        // First child is the identifier of the array
+                        identifierNode = variableNode.getChild(0);
+                        existingVar = node.getVariable(
+                                (String) identifierNode.jjtGetValue(), context);
+                        if (existingVar.isEmpty()) {
+                            // The array doesn't exist; create it
+                            existingVar = Optional.of(new SalinasValue(
+                                    new SalinasArrayMap(), SalinasType.ARRAY));
+                        } else if (existingVar.get().getCurrentType() != SalinasType.ARRAY) {
+                            throw new SalinasException("Array access attempted on "
+                                    + ((SalinasNode) variableNode.jjtGetChild(0))
+                                            .jjtGetValue() + "which is of type "
+                                    + existingVar.get().getCurrentType(),
+                                    variableNode.getFilename(),
+                                    variableNode.getBeginLine(),
+                                    variableNode.getBeginColumn());
+                        }
+                        SalinasValue previousVar = existingVar.get();
+                        // Other children are of type ArrayAccessSegment
+                        SalinasArrayMap arrayMap;
+                        SalinasNode childNode;
+                        Object indexValue;
+                        // Chain previous array indices together
+                        for (int count = 1; count < variableNode.jjtGetNumChildren(); count++) {
+                            arrayMap = (SalinasArrayMap) previousVar.getValue();
+                            childNode = variableNode.getChild(count).getChild(0);
+                            indexValue = SalinasInterpreter
+                                    .interpret(childNode, context)
+                                    .getValue();
 
-                        if (count == variableNode.jjtGetNumChildren() - 1) {
-                            // Store the expression value to the last array index
-                            arrayMap.put(indexValue, expressionValue);
-                        } else {
-                            // Check if the array index exists
-                            if (arrayMap.containsKey(indexValue)) {
-                                // Array index already exists
-                                previousVar = arrayMap.get(indexValue);
+                            if (count == variableNode.jjtGetNumChildren() - 1) {
+                                // Store the expression value to the last array index
+                                arrayMap.put(indexValue, expressionValue);
                             } else {
-                                // Array index does not exist; Create it
-                                previousVar = new SalinasValue(
-                                        new SalinasArrayMap(),
-                                        SalinasType.ARRAY);
+                                // Check if the array index exists
+                                if (arrayMap.containsKey(indexValue)) {
+                                    // Array index already exists
+                                    previousVar = arrayMap.get(indexValue);
+                                } else {
+                                    // Array index does not exist; Create it
+                                    previousVar = new SalinasValue(
+                                            new SalinasArrayMap(),
+                                            SalinasType.ARRAY);
 
-                                arrayMap.put(indexValue, previousVar);
+                                    arrayMap.put(indexValue, previousVar);
+                                }
                             }
                         }
-                    }
+                        break;
+                    default:
+                        throw new SalinasException("Unexpected node after assign: " + variableNode);
                 }
 
                 // Assign
-                if (existingVar != null) {
+                if (existingVar.isPresent()) {
                     if (variableNode.getId() == JJTIDENTIFIER) {
-                        existingVar.setValue(expressionValue);
+                        existingVar.get().setValue(expressionValue);
                     }
-                    returnValue = existingVar;
+                    returnValue = existingVar.get();
                 } else {
                     returnValue = expressionValue;
                 }
@@ -259,10 +269,10 @@ public class ExpressionInterpreter implements InterpreterDelegate {
             }
             case JJTIDENTIFIER: {
                 // TODO consolidate variable setting routines
-                SalinasValue existingVar = node.getVariable(
+                Optional<SalinasValue> existingVar = node.getVariable(
                         (String) node.jjtGetValue(), context);
-                if (existingVar != null) {
-                    returnValue = existingVar;
+                if (existingVar.isPresent()) {
+                    returnValue = existingVar.get();
                 } else {
                     returnValue = new SalinasValue(null, SalinasType.NULL);
                 }
@@ -294,9 +304,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
             throws SalinasException {
         final SalinasConfig config = (SalinasConfig) context.getAttribute("salinasConfig");
 
-        List<?> opTypes = (List) node.jjtGetValue();
-        Iterator<?> i = opTypes.iterator();
-        final List<SalinasValue> values = new LinkedList<>();
+        final List<SalinasValue> values = new ArrayList<>(4);
         for (int count = 0; count < node.jjtGetNumChildren(); count++) {
             final SalinasValue value = SalinasInterpreter.interpret(
                     (SalinasNode) node.jjtGetChild(count), context);
@@ -307,11 +315,13 @@ public class ExpressionInterpreter implements InterpreterDelegate {
             }
         }
 
+        List<? extends Integer> opTypes = (List) node.jjtGetValue();
+        Iterator<? extends Integer> i = opTypes.iterator();
         final Iterator<SalinasValue> vi = values.iterator();
         BigDecimal currentValue = (BigDecimal) vi.next().asType(SalinasType.NUMBER);
         while (i.hasNext()) {
             try {
-                final Integer opType = (Integer) i.next();
+                final Integer opType = i.next();
                 assert opType != null;
                 switch (opType) {
                     case SalinasParserConstants.MULT:
@@ -344,9 +354,9 @@ public class ExpressionInterpreter implements InterpreterDelegate {
     private SalinasValue comparativeEvaluation(SalinasNode node, ScriptContext context)
             throws SalinasException {
         boolean usingStrings = false;
-        List<?> opTypes = (List) node.jjtGetValue();
-        Iterator<?> i = opTypes.iterator();
-        final List<SalinasValue> values = new LinkedList<>();
+        List<? extends ComparativeOp> opTypes = (List) node.jjtGetValue();
+        Iterator<? extends ComparativeOp> i = opTypes.iterator();
+        final List<SalinasValue> values = new ArrayList<>(4);
         for (int count = 0; count < node.jjtGetNumChildren(); count++) {
             SalinasValue value = SalinasInterpreter.interpret(
                     (SalinasNode) node.jjtGetChild(count), context);
@@ -363,7 +373,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
         final Iterator<SalinasValue> vi = values.iterator();
         SalinasValue currentValue = vi.next();
         if (usingStrings) {
-            final ComparativeOp firstOp = (ComparativeOp) opTypes.get(0);
+            final ComparativeOp firstOp = opTypes.get(0);
             if (firstOp != ComparativeOp.EQUAL_TO_EXACT
                     && firstOp != ComparativeOp.NOT_EQUAL_TO_EXACT) {
                 currentValue = new SalinasValue(currentValue.asType(SalinasType.STRING),
@@ -372,7 +382,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
         }
         for (int count = 1; i.hasNext(); count++) {
             SalinasValue nextValue = vi.next();
-            final ComparativeOp op = (ComparativeOp) i.next();
+            final ComparativeOp op = i.next();
             if (usingStrings) {
                 if (op != ComparativeOp.EQUAL_TO_EXACT
                         && op != ComparativeOp.NOT_EQUAL_TO_EXACT) {

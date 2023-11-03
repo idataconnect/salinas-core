@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import javax.script.ScriptContext;
 
@@ -22,7 +23,7 @@ import javax.script.ScriptContext;
 public class InternalFunctionProvider extends FunctionProvider {
     
     private static final Map<String, Function> functionMap
-            = new HashMap<String, Function>(128);
+            = new HashMap<>(128);
 
     /**
      * Convert string to upper case.
@@ -438,7 +439,7 @@ public class InternalFunctionProvider extends FunctionProvider {
         public SalinasValue call(ScriptContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("IIF", 3, parameters);
-            return ((Boolean) parameters[0].asType(SalinasType.BOOLEAN)).booleanValue()
+            return ((Boolean) parameters[0].asType(SalinasType.BOOLEAN))
                     ? parameters[1] : parameters[2];
         }
     };
@@ -544,7 +545,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     }
 
     @Override
-    public Function getFunction(String name, SalinasNode node) {
-        return functionMap.get(name.toUpperCase());
+    public Optional<Function> getFunction(String name, SalinasNode node) {
+        return Optional.ofNullable(functionMap.get(name.toUpperCase()));
     }
 }

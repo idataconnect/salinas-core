@@ -4,7 +4,6 @@
 package com.idataconnect.salinas.function;
 
 import java.math.BigDecimal;
-import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import static org.junit.Assert.*;
@@ -17,12 +16,10 @@ import org.junit.Test;
 public class NumericExpressionTest {
 
     private ScriptEngine scriptEngine;
-    private ScriptContext context;
 
     @Before
     public void setup() throws Exception {
         scriptEngine = new ScriptEngineManager().getEngineByName("salinas");
-        context = scriptEngine.getContext();
     }
 
     @Test

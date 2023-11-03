@@ -7,9 +7,10 @@ import com.idataconnect.salinas.data.ConversionException;
 import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
+import java.util.Optional;
 
 /**
- * A function provider implementation which can call user defined functions.
+ * A function provider implementation which calls user defined functions.
  */
 public class UserDefinedFunctionProvider extends FunctionProvider {
 
@@ -25,17 +26,17 @@ public class UserDefinedFunctionProvider extends FunctionProvider {
     }
 
     @Override
-    public Function getFunction(String name, SalinasNode node)
+    public Optional<Function> getFunction(String name, SalinasNode node)
             throws ConversionException {
-        final SalinasValue var = node.getVariable(name, functionContext.getScriptContext());
-        if (var == null) {
-            return null;
-        } else if (var.getCurrentType() != SalinasType.FUNCTION) {
+        Optional<SalinasValue> var = node.getVariable(name, functionContext.getScriptContext());
+        if (!var.isPresent()) {
+            return Optional.empty();
+        } else if (var.get().getCurrentType() != SalinasType.FUNCTION) {
             throw new ConversionException(name
-                    + " is not a function. Its type is " + var.getCurrentType(),
+                    + " is not a function; Its type is " + var.get().getCurrentType(),
                     node.getFilename(), node.getBeginLine(), node.getBeginColumn());
         }
 
-        return new UserDefinedFunction(var, functionContext);
+        return Optional.of(new UserDefinedFunction(var.get(), functionContext));
     }
 }
