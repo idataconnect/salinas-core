@@ -1,11 +1,12 @@
 /*
- * Copyright 2011-2013 i Data Connect!
+ * Copyright 2011-2023 i Data Connect!
+ * Use is subject to the terms outlined in the LICENSE file.
  */
 package com.idataconnect.salinas.function;
 
 import com.idataconnect.salinas.parser.SalinasNode;
 import java.io.PrintStream;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
@@ -60,6 +61,6 @@ public class CallStack {
      * @return a list of stack frames
      */
     public List<StackFrame> getStackTrace() {
-        return Collections.unmodifiableList((LinkedList) stack);
+        return new ArrayList<>(stack);
     }
 }

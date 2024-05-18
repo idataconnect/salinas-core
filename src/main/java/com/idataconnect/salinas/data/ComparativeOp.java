@@ -114,7 +114,7 @@ public abstract class ComparativeOp {
                 return ((String) v1Converted)
                         .compareTo((String) v2.getValue()) < 0;
             } else if (v2.getCurrentType() == SalinasType.DATE) {
-                // TODO finish date
+
                 throw new UnsupportedOperationException("Not yet supported");
             } else {
                 throw new IllegalArgumentException("Unknown type during compare: "

@@ -3,12 +3,14 @@
  */
 package com.idataconnect.salinas.function;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.math.BigDecimal;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import static org.junit.Assert.*;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit tests for numeric expressions.
@@ -17,7 +19,7 @@ public class NumericExpressionTest {
 
     private ScriptEngine scriptEngine;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         scriptEngine = new ScriptEngineManager().getEngineByName("salinas");
     }

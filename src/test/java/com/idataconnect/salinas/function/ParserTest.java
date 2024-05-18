@@ -3,14 +3,16 @@
  */
 package com.idataconnect.salinas.function;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.math.BigDecimal;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import static org.junit.Assert.*;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests to ensure that the parser is working properly for core statements,
@@ -20,7 +22,7 @@ public class ParserTest {
     private ScriptEngine salinas;
     private ScriptContext context;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         salinas = new ScriptEngineManager().getEngineByName("salinas");
         context = salinas.getContext();
