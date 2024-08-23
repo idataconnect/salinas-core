@@ -6,7 +6,6 @@ package com.idataconnect.salinas.data;
 import com.idataconnect.salinas.function.Function;
 import com.idataconnect.salinas.parser.SalinasNode;
 import java.math.BigDecimal;
-import java.util.Optional;
 
 /**
  * A type of value that Salinas can represent.
