@@ -4,7 +4,6 @@
 package com.idataconnect.salinas.function;
 
 import java.math.BigDecimal;
-import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -17,13 +16,12 @@ import org.junit.Test;
  * expressions and edge cases related to core parsing.
  */
 public class ParserTest {
+
     private ScriptEngine salinas;
-    private ScriptContext context;
 
     @Before
     public void setup() throws Exception {
         salinas = new ScriptEngineManager().getEngineByName("salinas");
-        context = salinas.getContext();
     }
 
     @Test

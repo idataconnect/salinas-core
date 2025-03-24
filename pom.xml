@@ -19,6 +19,7 @@
                 <version>3.0.1</version>
                 <executions>
                     <execution>
+                        <?m2e execute onConfiguration,onIncremental?>
                         <id>jjtree-javacc</id>
                         <goals>
                             <goal>jjtree-javacc</goal>

@@ -11,6 +11,8 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.idataconnect.salinas.SalinasConfig;
+
 /**
  * Unit tests for type conversion.
  */
@@ -18,11 +20,13 @@ public class TypeConversionTest {
 
     private ScriptEngine scriptEngine;
     private ScriptContext context;
+    private SalinasConfig config;
 
     @Before
     public void setup() throws Exception {
         scriptEngine = new ScriptEngineManager().getEngineByName("salinas");
         context = scriptEngine.getContext();
+        config = (SalinasConfig) context.getAttribute("salinasConfig");
     }
 
     @Test

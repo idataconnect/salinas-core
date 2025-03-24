@@ -45,14 +45,20 @@ public class ExpressionInterpreter implements InterpreterDelegate {
     @Override
     public SalinasValue interpret(SalinasNode node, ScriptContext context)
             throws SalinasException {
-        final SalinasConfig config = (SalinasConfig) context.getAttribute("salinasConfig");
+        SalinasConfig config;
+        try {
+            config = (SalinasConfig) context.getAttribute("salinasConfig");
+        } catch (ClassCastException ex) {
+            System.err.println("Invalid configuration: " + ex.getMessage());
+            context.setAttribute("salinasConfig", config = new SalinasConfig(), ScriptContext.ENGINE_SCOPE);
+        }
 
         SalinasValue returnValue;
 
         List<? extends Integer> opTypes;
         switch (node.getId()) {
             case JJTADDITIVE:
-                opTypes = (List) node.jjtGetValue();
+                opTypes = (List<? extends Integer>) node.jjtGetValue();
                 Iterator<? extends Integer> i = opTypes.iterator();
                 boolean addStrings = false;
                 boolean moveSpacesToEnd = false;
@@ -315,7 +321,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
             }
         }
 
-        List<? extends Integer> opTypes = (List) node.jjtGetValue();
+        List<? extends Integer> opTypes = (List<? extends Integer>) node.jjtGetValue();
         Iterator<? extends Integer> i = opTypes.iterator();
         final Iterator<SalinasValue> vi = values.iterator();
         BigDecimal currentValue = (BigDecimal) vi.next().asType(SalinasType.NUMBER);
@@ -354,7 +360,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
     private SalinasValue comparativeEvaluation(SalinasNode node, ScriptContext context)
             throws SalinasException {
         boolean usingStrings = false;
-        List<? extends ComparativeOp> opTypes = (List) node.jjtGetValue();
+        List<? extends ComparativeOp> opTypes = (List<? extends ComparativeOp>) node.jjtGetValue();
         Iterator<? extends ComparativeOp> i = opTypes.iterator();
         final List<SalinasValue> values = new ArrayList<>(4);
         for (int count = 0; count < node.jjtGetNumChildren(); count++) {
@@ -380,7 +386,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                         SalinasType.STRING);
             }
         }
-        for (int count = 1; i.hasNext(); count++) {
+        while (i.hasNext()) {
             SalinasValue nextValue = vi.next();
             final ComparativeOp op = i.next();
             if (usingStrings) {

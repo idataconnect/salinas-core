@@ -34,7 +34,7 @@ public class SalinasNode extends SimpleNode {
     private String filename;
     private int beginLine = -1;
     private int beginColumn = -1;
-    
+
     /**
      * Creates a new Salinas node.
      * @param i the AST ID of the node
@@ -79,11 +79,11 @@ public class SalinasNode extends SimpleNode {
     public Optional<SalinasValue> getVariable(String name, boolean fullScope,
             ScriptContext context) {
         Object fetchedValue = null;
-        
+
         Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
 
         SalinasNode currentNode = this;
-        
+
         final String nameKey = nameKey(name);
 
         do {
@@ -96,7 +96,7 @@ public class SalinasNode extends SimpleNode {
             currentNode = fullScope ? (SalinasNode) currentNode.jjtGetParent()
                                     : null;
         } while (fetchedValue == null && currentNode != null);
-        
+
         if (fetchedValue == null) {
             if ((fetchedValue = bindings.get(nameKey(name))) == null) {
                 return Optional.empty();
@@ -165,18 +165,22 @@ public class SalinasNode extends SimpleNode {
      * found
      */
     public SalinasValue unsetVariable(String name, boolean fullScope,
-            ScriptContext context) {
+        ScriptContext context) {
         final Bindings bindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
         if (fullScope) {
-            SalinasValue returnValue;
-            if ((returnValue = (SalinasValue) bindings.remove(String.valueOf(hashCode()))) != null) {
-                return returnValue;
-            } else if (jjtGetParent() != null) {
-                // TODO iteration rather than recursion
-                return ((SalinasNode) jjtGetParent()).unsetVariable(name, true, context);
-            } else {
-                return null;
+            SalinasNode currentNode = this;
+            while (currentNode != null) {
+                final Bindings currentBindings = (Bindings) bindings.get(String.valueOf(hashCode()));
+                if (currentBindings != null) {
+                    SalinasValue returnValue = (SalinasValue) currentBindings.remove(String.valueOf(currentNode.hashCode()));
+                    if (returnValue != null) {
+                        return returnValue;
+                    }
+                }
+                currentNode = (SalinasNode) currentNode.jjtGetParent();
             }
+
+            return null; // Not found
         } else {
             return (SalinasValue) bindings.remove(name);
         }

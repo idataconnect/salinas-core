@@ -6,7 +6,6 @@ package com.idataconnect.salinas.function;
 import com.idataconnect.salinas.parser.SalinasNode;
 import java.io.PrintStream;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -15,7 +14,7 @@ import java.util.List;
  */
 public class CallStack {
 
-    private final Deque<StackFrame> stack = new LinkedList<>();
+    private final LinkedList<StackFrame> stack = new LinkedList<>();
 
     /**
      * Pushes a stack frame onto the call stack.
@@ -60,6 +59,6 @@ public class CallStack {
      * @return a list of stack frames
      */
     public List<StackFrame> getStackTrace() {
-        return Collections.unmodifiableList((LinkedList) stack);
+        return Collections.unmodifiableList(stack);
     }
 }
