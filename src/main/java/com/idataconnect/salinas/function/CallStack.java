@@ -1,5 +1,6 @@
 /*
- * Copyright 2011-2013 i Data Connect!
+ * Copyright 2011-2023 i Data Connect!
+ * Use is subject to the terms outlined in the LICENSE file.
  */
 package com.idataconnect.salinas.function;
 

@@ -3,12 +3,14 @@
  */
 package com.idataconnect.salinas.function;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.math.BigDecimal;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import static org.junit.Assert.*;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for internal functions.
@@ -17,7 +19,7 @@ public class InternalFunctionTest {
     
     private ScriptEngine salinas;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         salinas = new ScriptEngineManager().getEngineByName("salinas");
     }
@@ -61,16 +63,16 @@ public class InternalFunctionTest {
         // Same seed in the same engine should return different results, since
         // pulling a result changes the sequence, and the same seed won't
         // reset the sequence.
-        assertFalse(e1.eval("RANDOM(1000)").equals(e1.eval("RANDOM(1000)")));
+        assertNotEquals(e1.eval("RANDOM(1000)"), e1.eval("RANDOM(1000)"));
 
         // Different results for different positive seeds
-        assertFalse(e1.eval("RANDOM(1000)").equals(e2.eval("RANDOM(1001)")));
+        assertNotEquals(e1.eval("RANDOM(1000)"), e2.eval("RANDOM(1001)"));
 
         // Different results for the same negative seed (randomized seed)
-        assertFalse(e1.eval("RANDOM(-100)").equals(e1.eval("RANDOM(-100)")));
-        assertFalse(e1.eval("RANDOM(-100)").equals(e2.eval("RANDOM(-100)")));
-        assertFalse(e1.eval("RANDOM(-1)").equals(e1.eval("RANDOM(-1)")));
-        assertFalse(e1.eval("RANDOM(-1)").equals(e2.eval("RANDOM(-1)")));
+        assertNotEquals(e1.eval("RANDOM(-100)"), e1.eval("RANDOM(-100)"));
+        assertNotEquals(e1.eval("RANDOM(-100)"), e2.eval("RANDOM(-100)"));
+        assertNotEquals(e1.eval("RANDOM(-1)"), e1.eval("RANDOM(-1)"));
+        assertNotEquals(e1.eval("RANDOM(-1)"), e2.eval("RANDOM(-1)"));
 
     }
 

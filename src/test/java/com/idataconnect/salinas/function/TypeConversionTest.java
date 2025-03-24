@@ -3,13 +3,15 @@
  */
 package com.idataconnect.salinas.function;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.math.BigDecimal;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import static org.junit.Assert.*;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.idataconnect.salinas.SalinasConfig;
 
@@ -22,7 +24,7 @@ public class TypeConversionTest {
     private ScriptContext context;
     private SalinasConfig config;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         scriptEngine = new ScriptEngineManager().getEngineByName("salinas");
         context = scriptEngine.getContext();

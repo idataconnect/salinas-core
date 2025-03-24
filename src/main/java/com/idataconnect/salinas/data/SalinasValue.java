@@ -160,9 +160,8 @@ public class SalinasValue {
     /**
      * Creates a new, dynamically-typed value with the given value and type.
      * <p>
-     * If the type is known
-     * beforehand, this constructor will generally be more efficient than
-     * the constructor which only takes the value
+     * If the type is known beforehand, this constructor will generally be more efficient than
+     * the constructor which only takes the value.
      *
      * @param value the raw value
      * @param currentType the value's type
@@ -173,14 +172,14 @@ public class SalinasValue {
 
     /**
      * Creates a new, optionally strongly typed value with the given value and
-     * type. If <code>strong</code> is <code>true</code>, the strong type
-     * will be the type specified by <code>currentType</code>. If
-     * <code>strong</code> is <code>false</code>, the value's initial dynamic
-     * type will be set to the type specified by <code>currentType</code>.
+     * type. If {@code strong} is {@code true}, the strong type
+     * will be the type specified by {@code currentType}. If
+     * {@code strong} is {@code false}, the value's initial dynamic
+     * type will be set to the type specified by {@code currentType}.
      *
      * @param value the raw value
      * @param currentType the current type
-     * @param strong whether this value should be a strong typed value
+     * @param strong whether this value should be a strongly typed value
      */
     public SalinasValue(Object value, SalinasType currentType, boolean strong) {
         this.value = value;

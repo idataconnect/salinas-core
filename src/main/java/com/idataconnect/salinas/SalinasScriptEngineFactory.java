@@ -13,7 +13,7 @@ import javax.script.ScriptEngineFactory;
 /**
  * JSR-233 script engine factory implementation for Salinas.
  */
-public class SalinasScriptEngineFactory implements ScriptEngineFactory{
+public class SalinasScriptEngineFactory implements ScriptEngineFactory {
 
     /** An instance of the newline character(s) for the current system. */
     public static final String NEW_LINE = System.getProperty("line.separator");
@@ -38,10 +38,12 @@ public class SalinasScriptEngineFactory implements ScriptEngineFactory{
 
     @Override
     public List<String> getMimeTypes() {
-        return Arrays.asList(new String[] {
-            "application/x-salinas-script",
-            "application/x-xbase-script",
-        });
+        return Arrays.asList(
+                "application/salinas-script",
+                "application/xbase-script",
+                "text/salinas-script",
+                "text/xbase-script"
+        );
     }
 
     @Override
@@ -67,20 +69,22 @@ public class SalinasScriptEngineFactory implements ScriptEngineFactory{
 
     @Override
     public Object getParameter(String key) {
-        if (key.equals(ScriptEngine.ENGINE)) {
-            return getEngineName();
-        } else if (key.equals(ScriptEngine.ENGINE_VERSION)) {
-            return getEngineVersion();
-        } else if (key.equals(ScriptEngine.NAME)) {
-            return getNames();
-        } else if (key.equals(ScriptEngine.LANGUAGE)) {
-            return getLanguageName();
-        } else if (key.equals(ScriptEngine.LANGUAGE_VERSION)) {
-            return getLanguageVersion();
-        } else if (key.equals("THREADING")) {
-            return null;//"MULTITHREADED";
-        } else {
-            return null;
+        switch (key) {
+            case ScriptEngine.ENGINE:
+                return getEngineName();
+            case ScriptEngine.ENGINE_VERSION:
+                return getEngineVersion();
+            case ScriptEngine.NAME:
+                return getNames();
+            case ScriptEngine.LANGUAGE:
+                return getLanguageName();
+            case ScriptEngine.LANGUAGE_VERSION:
+                return getLanguageVersion();
+            case "THREADING":
+                return null;//"MULTITHREADED";
+
+            default:
+                return null;
         }
     }
 

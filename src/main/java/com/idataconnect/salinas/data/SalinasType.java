@@ -31,11 +31,9 @@ public abstract class SalinasType {
             } else if (destType == BOOLEAN) {
                 return Boolean.FALSE;
             } else if (destType == DATE) {
-                return null; // TODO finish date
+                return null;
             } else {
-                throw new IllegalArgumentException("Cannot convert from type "
-                        + getClass().getName() + " to type "
-                        + destType.getClass().getName());
+                throw conversionError(getClass().getName(), destType.getClass().getName());
             }
         }
 
@@ -81,11 +79,14 @@ public abstract class SalinasType {
             } else if (destType == BOOLEAN) {
                 return ((BigDecimal) value).signum() != 0;
             } else if (destType == DATE) {
-                return null; // TODO finish date
+                if (value == null) {
+                    return null;
+                }
+
+                java.sql.Date date = (java.sql.Date) value;
+                return BigDecimal.valueOf(date.getTime() / 1000);
             } else {
-                throw new IllegalArgumentException("Cannot convert from type "
-                        + getClass().getName() + " to type "
-                        + destType.getClass().getName());
+                throw conversionError(getClass().getName(), destType.getClass().getName());
             }
         }
 
@@ -116,13 +117,11 @@ public abstract class SalinasType {
             } else if (destType == STRING) {
                 return value;
             } else if (destType == BOOLEAN) {
-                return Boolean.valueOf(((String) value).length() != 0);
+                return !((String) value).isEmpty();
             } else if (destType == DATE) {
                 return null; // TODO finish date
             } else {
-                throw new IllegalArgumentException("Cannot convert from type "
-                        + getClass().getName() + " to type "
-                        + destType.getClass().getName());
+                throw conversionError(getClass().getName(), destType.getClass().getName());
             }
         }
 
@@ -146,18 +145,16 @@ public abstract class SalinasType {
             } else if (destType == UNDEFINED) {
                 return null;
             } else if (destType == NUMBER) {
-                return ((Boolean) value).booleanValue()
+                return (Boolean) value
                         ? BigDecimal.ONE : BigDecimal.ZERO;
             } else if (destType == STRING) {
-                return ((Boolean) value).booleanValue() ? "1" : "";
+                return (Boolean) value ? "1" : "";
             } else if (destType == BOOLEAN) {
                 return value;
             } else if (destType == DATE) {
-                return null; // TODO finish date
+                return null;
             } else {
-                throw new IllegalArgumentException("Cannot convert from type "
-                        + getClass().getName() + " to type "
-                        + destType.getClass().getName());
+                throw conversionError(getClass().getName(), destType.getClass().getName());
             }
         }
 
@@ -175,7 +172,13 @@ public abstract class SalinasType {
         @Override
         public Object convert(SalinasType destType, Object value)
                 throws ConversionException {
-            throw new UnsupportedOperationException("Not supported yet.");
+            if (destType == DATE) {
+                return value;
+            } else if (destType == STRING) {
+                return value == null ? null : value.toString();
+            }
+
+            throw conversionError(getClass().getName(), destType.getClass().getName());
         }
 
         @Override
@@ -183,6 +186,12 @@ public abstract class SalinasType {
             return "Date";
         }
     };
+
+    private static ConversionException conversionError(String sourceName, String destName) {
+        return new ConversionException("Cannot convert from type "
+                + sourceName + " to type "
+                + destName);
+    }
 
     /**
      * A function type, representing callable functions.
@@ -235,7 +244,7 @@ public abstract class SalinasType {
                     System.out.println("\tat " + ste);
                 }
             }
-        } catch (Exception ex) {}
+        } catch (Exception ignored) {}
         throw new ConversionException("Cannot convert from "
                 + sourceType + " to "
                 + destType);
@@ -250,7 +259,6 @@ public abstract class SalinasType {
      * object class was unknown.
      */
     public static SalinasType valueOf(Class<?> objectClass) {
-        // TODO finish date
         if (objectClass == null) {
             return SalinasType.NULL;
         } else if (objectClass.equals(String.class)) {
@@ -264,6 +272,8 @@ public abstract class SalinasType {
             return FUNCTION;
         } else if (objectClass.equals(SalinasArrayMap.class)) {
             return ARRAY;
+        } else if (objectClass.equals(java.util.Date.class)) {
+            return DATE;
         } else {
             return UNDEFINED;
         }
