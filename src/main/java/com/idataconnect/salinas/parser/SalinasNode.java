@@ -287,7 +287,7 @@ public class SalinasNode extends SimpleNode {
 
     /**
      * Wrapper for {@link #jjtGetChild(int)} which returns a
-     * <code>SalinasNode</code>, to avoid a cast.
+     * <code>SalinasNode</code>, allowing the caller to avoid a cast.
      *
      * @param index the child index
      * @return a Salinas node

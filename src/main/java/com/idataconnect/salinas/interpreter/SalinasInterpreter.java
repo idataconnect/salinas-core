@@ -40,7 +40,7 @@ public class SalinasInterpreter {
         delegateMap.put(JJTADDITIVE,
                 ExpressionInterpreter.getInstance());
         delegateMap.put(JJTASSIGN,
-                ExpressionInterpreter.getInstance());
+                AssignInterpreter.getInstance());
         delegateMap.put(JJTEQUALITY,
                 ExpressionInterpreter.getInstance());
         delegateMap.put(JJTCOMPARE,
@@ -111,7 +111,7 @@ public class SalinasInterpreter {
         if (returning != null) {
             return returning;
         }
-        
+
         InterpreterDelegate delegate = getDelegate(node.getId());
         assert delegate != null : "No interpreter delegate for " + SalinasParserTreeConstants.jjtNodeName[node.getId()];
 
@@ -131,7 +131,7 @@ public class SalinasInterpreter {
             final SalinasNode child = (SalinasNode) node.jjtGetChild(count);
             importFunctions(child, context);
         }
-        
+
         if (node.getId() == JJTFUNCTIONDECLARATION) {
             final SalinasNode firstChild = (SalinasNode) node.jjtGetChild(0);
             if (firstChild.getId() == JJTIDENTIFIER) {
