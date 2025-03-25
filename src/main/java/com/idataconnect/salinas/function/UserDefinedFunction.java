@@ -107,10 +107,8 @@ public class UserDefinedFunction extends Function {
         if (existingVar.isPresent()) {
             existingVar.get().setValue(value);
         } else {
-            // TODO consolidate variable setting routines
-            final SalinasValue val = value;
             functionNode.setVariable((String) identifierNode.jjtGetValue(),
-                    val, context);
+                    value, context);
 
             if (identifierNode.jjtGetNumChildren() > 0) {
                 // parameter has strong type
@@ -119,7 +117,7 @@ public class UserDefinedFunction extends Function {
                 final SalinasType dataType
                         = (SalinasType) ((SalinasNode) identifierNode.jjtGetChild(0))
                         .jjtGetValue();
-                val.setStrongType(dataType);
+                value.setStrongType(dataType);
             }
         }
     }

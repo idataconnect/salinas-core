@@ -4,6 +4,7 @@
 package com.idataconnect.salinas.interpreter;
 
 import com.idataconnect.salinas.SalinasException;
+import com.idataconnect.salinas.data.ConversionException;
 import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
@@ -11,6 +12,8 @@ import com.idataconnect.salinas.parser.SalinasParserTreeConstants;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
 import javax.script.ScriptContext;
 
 /**
@@ -119,19 +122,14 @@ public class SalinasInterpreter {
     }
 
     /**
-     * Recursively import all named functions in the AST.
+     * Import all named functions in the current node scope, for forward
+     * reference in the script context. This is generally called on the root
+     * node of the AST of each script.
      *
-     * @param node the node to import functions from (generally called with
-     * the AST root node)
+     * @param node the node to import functions from
      * @param context the script context
      */
     public static void importFunctions(SalinasNode node, ScriptContext context) {
-
-        for (int count = 0; count < node.jjtGetNumChildren(); count++) {
-            final SalinasNode child = (SalinasNode) node.jjtGetChild(count);
-            importFunctions(child, context);
-        }
-
         if (node.getId() == JJTFUNCTIONDECLARATION) {
             final SalinasNode firstChild = (SalinasNode) node.jjtGetChild(0);
             if (firstChild.getId() == JJTIDENTIFIER) {
@@ -146,5 +144,31 @@ public class SalinasInterpreter {
 
     static InterpreterDelegate getDelegate(int nodeId) {
         return delegateMap.get(Integer.valueOf(nodeId));
+    }
+
+    /**
+     * Sets the variable into the given node. This acts as a general helper function
+     * for setting variables in the Salinas AST.
+     *
+     * @param node the node to set the variable in
+     * @param name the name of the variable
+     * @param value the value of the variable
+     * @param context the script context
+     * @return the variable, holding the value that was set
+     * @throws ConversionException if the variable exists and is an incompatible strong type
+     */
+    public static SalinasValue setVariable(SalinasNode node, String name, SalinasValue value, ScriptContext context)
+            throws ConversionException {
+        SalinasNode identifierNode = node.getChild(0);
+        Optional<SalinasValue> variable = node.getVariable(
+                (String) identifierNode.jjtGetValue(), context);
+
+        if (variable.isPresent()) {
+            variable.get().setValue(value);
+            return variable.get();
+        } else {
+            return ((SalinasNode) node.jjtGetParent()).getFirstVariableHolder()
+                    .setVariable((String) identifierNode.jjtGetValue(), value, context);
+        }
     }
 }

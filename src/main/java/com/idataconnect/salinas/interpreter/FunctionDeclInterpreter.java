@@ -34,26 +34,15 @@ public class FunctionDeclInterpreter implements InterpreterDelegate {
     @Override
     public SalinasValue interpret(SalinasNode node, ScriptContext context)
             throws SalinasException {
-        final SalinasNode firstChild = (SalinasNode) node.jjtGetChild(0);
+        final SalinasNode firstChild = node.getChild(0);
         SalinasNode identifierNode;
 
         final boolean identifierPresent = firstChild.getId() == JJTIDENTIFIER;
         final SalinasValue function = new SalinasValue(node, SalinasType.FUNCTION);
 
         if (identifierPresent) {
-            // TODO consolidate variable setting routines
-            identifierNode = (SalinasNode) node
-                    .jjtGetChild(0);
-            SalinasValue value = node.getVariable(
-                    (String) identifierNode.jjtGetValue(), context).orElse(null);
-
-            if (value != null) {
-                value.setValue(function);
-            } else {
-                ((SalinasNode) node.jjtGetParent()).getFirstVariableHolder()
-                        .setVariable((String) identifierNode.jjtGetValue(),
-                        function, context);
-            }
+            identifierNode = firstChild;
+            SalinasInterpreter.setVariable(node, (String) identifierNode.jjtGetValue(), function, context);
             if (identifierNode.jjtGetNumChildren() > 0) {
                 // has strong type
                 assert ((SalinasNode) identifierNode.jjtGetChild(0)).getId()

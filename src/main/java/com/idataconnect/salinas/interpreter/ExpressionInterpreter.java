@@ -134,7 +134,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                 returnValue = numericCalculation(node, context);
                 break;
             case JJTIDENTIFIER: {
-                // TODO consolidate variable setting routines
+                // Attach strong type
                 Optional<SalinasValue> existingVar = node.getVariable(
                         (String) node.jjtGetValue(), context);
                 if (existingVar.isPresent()) {
