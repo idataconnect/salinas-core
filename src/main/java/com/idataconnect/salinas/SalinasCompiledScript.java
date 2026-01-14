@@ -23,7 +23,7 @@ import javax.script.ScriptException;
  * JSR-233 CompiledScript implementation for Salinas.
  */
 public class SalinasCompiledScript extends CompiledScript {
-    
+
     private final SalinasNode ast;
     private final ScriptEngine engine;
     private final String filename;
@@ -168,8 +168,10 @@ public class SalinasCompiledScript extends CompiledScript {
             SalinasValue val = (SalinasValue) SalinasInterpreter.interpret(node, context);
             return val == null ? null : val.getValue();
         } catch (SalinasException ex) {
-            throw new ScriptException(ex.getMessage(), ex.getFilename(),
+            ScriptException se = new ScriptException(ex.getMessage(), ex.getFilename(),
                     ex.getBeginLine(), ex.getBeginColumn());
+            se.addSuppressed(ex);
+            throw se;
         }
     }
 
