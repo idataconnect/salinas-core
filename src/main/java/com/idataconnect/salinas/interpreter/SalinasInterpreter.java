@@ -140,6 +140,10 @@ public class SalinasInterpreter {
                         .put(name.toUpperCase(), functionValue);
             }
         }
+        // Recurse on children to import functions defined anywhere in the script
+        for (int i = 0; i < node.jjtGetNumChildren(); i++) {
+            importFunctions((SalinasNode) node.jjtGetChild(i), context);
+        }
     }
 
     static InterpreterDelegate getDelegate(int nodeId) {
