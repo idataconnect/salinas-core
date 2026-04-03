@@ -17,13 +17,10 @@ import java.util.Optional;
  */
 public class ReplaceInterpreter implements InterpreterDelegate {
 
-    private static ReplaceInterpreter instance;
+    private static final ReplaceInterpreter INSTANCE = new ReplaceInterpreter();
 
     public static ReplaceInterpreter getInstance() {
-        if (instance == null) {
-            instance = new ReplaceInterpreter();
-        }
-        return instance;
+        return INSTANCE;
     }
 
     @Override

@@ -19,8 +19,12 @@ public class WorkAreaManager {
             old.getDbf().close();
             aliasToId.remove(old.getAlias().toUpperCase());
         }
-        workAreas.put(id, workArea);
-        aliasToId.put(workArea.getAlias().toUpperCase(), id);
+        if (workArea != null) {
+            workAreas.put(id, workArea);
+            aliasToId.put(workArea.getAlias().toUpperCase(), id);
+        } else {
+            workAreas.remove(id);
+        }
         currentWorkArea = id;
     }
 
@@ -49,10 +53,18 @@ public class WorkAreaManager {
     }
 
     public void closeAll() throws IOException {
+        IOException lastEx = null;
         for (WorkArea wa : workAreas.values()) {
-            wa.getDbf().close();
+            try {
+                wa.getDbf().close();
+            } catch (IOException ex) {
+                lastEx = ex;
+            }
         }
         workAreas.clear();
         aliasToId.clear();
+        if (lastEx != null) {
+            throw lastEx;
+        }
     }
 }

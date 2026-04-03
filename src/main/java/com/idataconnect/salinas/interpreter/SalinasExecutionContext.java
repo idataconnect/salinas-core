@@ -7,12 +7,15 @@ import com.idataconnect.salinas.data.WorkAreaManager;
 import com.idataconnect.salinas.function.CallStack;
 import com.idataconnect.salinas.function.FunctionContext;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.script.ScriptContext;
 
 /**
  * A context for the execution of a Salinas script.
  */
 public class SalinasExecutionContext {
+    private static final Logger LOGGER = Logger.getLogger(SalinasExecutionContext.class.getName());
     private final ScriptContext scriptContext;
     private SalinasScope globalScope;
     private SalinasScope currentScope;
@@ -39,7 +42,9 @@ public class SalinasExecutionContext {
                                 try {
                                     Object val = dbf.getValue(fieldNum).getValue();
                                     return Optional.of(SalinasValue.valueOf(val));
-                                } catch (Exception ignored) {}
+                                } catch (Exception ex) {
+                                    LOGGER.log(Level.WARNING, "Error retrieving value for field: " + name, ex);
+                                }
                             }
                         }
                     }

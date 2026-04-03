@@ -19,13 +19,10 @@ import java.util.Optional;
  */
 public class UseInterpreter implements InterpreterDelegate {
 
-    private static UseInterpreter instance;
+    private static final UseInterpreter INSTANCE = new UseInterpreter();
 
     public static UseInterpreter getInstance() {
-        if (instance == null) {
-            instance = new UseInterpreter();
-        }
-        return instance;
+        return INSTANCE;
     }
 
     @Override
@@ -40,9 +37,7 @@ public class UseInterpreter implements InterpreterDelegate {
             try {
                 Optional<WorkArea> current = wam.getCurrentWorkArea();
                 if (current.isPresent()) {
-                    current.get().getDbf().close();
-                    // Need a way to remove it from wam, but wam.use with null could work if I implement it
-                    // For now, let's just close it.
+                    wam.use(wam.getCurrentWorkAreaId(), null);
                 }
             } catch (IOException ex) {
                 throw new SalinasException("Error closing DBF", ex);

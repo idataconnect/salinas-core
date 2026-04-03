@@ -77,9 +77,9 @@ public class UserDefinedFunction extends Function {
                         SalinasInterpreter.interpret(childNode, context);
                         
                         // Check for return
-                        SalinasValue returning = (SalinasValue) context.getScriptContext().getAttribute("returning", ScriptContext.ENGINE_SCOPE);
+                        SalinasValue returning = context.getReturning();
                         if (returning != null) {
-                            context.getScriptContext().removeAttribute("returning", ScriptContext.ENGINE_SCOPE);
+                            context.clearReturning();
                             return returning;
                         }
                         break;
