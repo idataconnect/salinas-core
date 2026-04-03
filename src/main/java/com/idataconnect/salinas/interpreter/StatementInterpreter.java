@@ -6,7 +6,6 @@ package com.idataconnect.salinas.interpreter;
 import com.idataconnect.salinas.SalinasException;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
-import javax.script.ScriptContext;
 
 /**
  * Interpreter delegate implementation for statement nodes.
@@ -28,7 +27,7 @@ public class StatementInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         if (node.jjtGetNumChildren() == 0) {
             return null;

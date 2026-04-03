@@ -9,13 +9,12 @@ import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTSTAT
 
 import java.util.Optional;
 
-import javax.script.ScriptContext;
-
 import com.idataconnect.salinas.SalinasException;
 import com.idataconnect.salinas.data.SalinasArrayMap;
 import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
+
 
 public class AssignInterpreter implements InterpreterDelegate {
 
@@ -34,20 +33,10 @@ public class AssignInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         // Assign
         // L Identifier
-        // L Expression
-        //
-        // Assign
-        // L ArrayAccess
-        //   L Identifier
-        //   L ArrayAccessSegment
-        //     L Expression
-        //   L ArrayAccessSegment
-        //     L Expression
-        //   L ...
         // L Expression
 
         SalinasValue returnValue;
@@ -67,8 +56,8 @@ public class AssignInterpreter implements InterpreterDelegate {
         switch (variableNode.getId()) {
             case JJTIDENTIFIER:
                 // Assign to variable
-                existingVar = node.getVariable(
-                        (String) variableNode.jjtGetValue(), context);
+                existingVar = context.getVariable(
+                        (String) variableNode.jjtGetValue());
                 identifierNode = variableNode;
                 break;
             case JJTARRAYACCESS:
@@ -76,8 +65,8 @@ public class AssignInterpreter implements InterpreterDelegate {
 
                 // First child is the identifier of the array
                 identifierNode = variableNode.getChild(0);
-                existingVar = node.getVariable(
-                        (String) identifierNode.jjtGetValue(), context);
+                existingVar = context.getVariable(
+                        (String) identifierNode.jjtGetValue());
                 if (existingVar.isEmpty()) {
                     // The array doesn't exist; create it
                     existingVar = Optional.of(new SalinasValue(
@@ -159,19 +148,13 @@ public class AssignInterpreter implements InterpreterDelegate {
             }
         }
         if (isPublic) {
-            context.getBindings(ScriptContext.ENGINE_SCOPE)
-                    .put(identifierNode.jjtGetValue().toString().toUpperCase(),
-                    returnValue);
+            context.setGlobalVariable(identifierNode.jjtGetValue().toString(), returnValue);
         } else {
-            node.getFirstVariableHolder()
-                    .setVariable((String) identifierNode.jjtGetValue(),
-                    returnValue, context);
+            context.setVariable((String) identifierNode.jjtGetValue(),
+                    returnValue);
         }
 
         if (variableNode.getId() == JJTARRAYACCESS) {
-            // Special handling for arrays. Consider using
-            // returnValue = ExpressionInterpreter.interpret(returnValue);
-            // instead, however this works now and performs better.
             returnValue = expressionValue;
         }
 

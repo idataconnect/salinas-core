@@ -8,7 +8,6 @@ import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
-import javax.script.ScriptContext;
 
 /**
  * An interpreter delegate for boolean nodes.
@@ -30,7 +29,7 @@ public class BooleanInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         if (node.getId() == JJTBOOLEANNOT) {
             return SalinasInterpreter.interpret(node.getChild(0), context)

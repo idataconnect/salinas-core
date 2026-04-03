@@ -8,7 +8,6 @@ import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTSTATEMENT;
-import javax.script.ScriptContext;
 
 /**
  * Interpreter delegate implementation for IF statement nodes.
@@ -30,7 +29,7 @@ public class IfInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         // IfBlock
         // L IfBranch

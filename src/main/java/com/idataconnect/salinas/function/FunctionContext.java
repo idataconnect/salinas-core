@@ -6,11 +6,13 @@ package com.idataconnect.salinas.function;
 import com.idataconnect.salinas.SalinasException;
 import com.idataconnect.salinas.data.ConversionException;
 import com.idataconnect.salinas.data.SalinasValue;
+import com.idataconnect.salinas.interpreter.SalinasExecutionContext;
 import com.idataconnect.salinas.parser.SalinasNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.script.ScriptContext;
+
 
 /**
  * The function context, which is created once for each <code>ScriptEngine</code>
@@ -70,6 +72,7 @@ public class FunctionContext {
      *
      * @param name the name of the function
      * @param node the node where the function is being called from
+     * @param context the execution context
      * @param parameters the parameters to pass to the function
      * @return the result returned by the function
      * @throws FunctionCallException if the function does not exist, is called
@@ -78,7 +81,7 @@ public class FunctionContext {
      * @throws SalinasException if an error occurs during execution of the
      * function
      */
-    public SalinasValue call(String name, SalinasNode node, SalinasValue... parameters)
+    public SalinasValue call(String name, SalinasNode node, SalinasExecutionContext context, SalinasValue... parameters)
             throws FunctionCallException, SalinasException {
 
         Optional<Function> function = getFunction(name, node);
@@ -88,6 +91,6 @@ public class FunctionContext {
                     node.getFilename(), node.getBeginLine(), node.getBeginColumn());
         }
 
-        return function.get().call(getScriptContext(), parameters);
+        return function.get().call(context, parameters);
     }
 }

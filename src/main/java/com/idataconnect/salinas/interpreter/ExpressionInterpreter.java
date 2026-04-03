@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import javax.script.ScriptContext;
 
 // TODO this is currently a catch-all for too many types
 
@@ -42,14 +41,11 @@ public class ExpressionInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
-        SalinasConfig config;
-        try {
-            config = (SalinasConfig) context.getAttribute("salinasConfig");
-        } catch (ClassCastException ex) {
-            System.err.println("Invalid configuration: " + ex.getMessage());
-            context.setAttribute("salinasConfig", config = new SalinasConfig(), ScriptContext.ENGINE_SCOPE);
+        SalinasConfig config = context.getConfig();
+        if (config == null) {
+            config = new SalinasConfig();
         }
 
         SalinasValue returnValue;
@@ -135,8 +131,8 @@ public class ExpressionInterpreter implements InterpreterDelegate {
                 break;
             case JJTIDENTIFIER: {
                 // Attach strong type
-                Optional<SalinasValue> existingVar = node.getVariable(
-                        (String) node.jjtGetValue(), context);
+                Optional<SalinasValue> existingVar = context.getVariable(
+                        (String) node.jjtGetValue());
                 if (existingVar.isPresent()) {
                     returnValue = existingVar.get();
                 } else {
@@ -166,9 +162,9 @@ public class ExpressionInterpreter implements InterpreterDelegate {
         return returnValue;
     }
 
-    private static SalinasValue numericCalculation(SalinasNode node, ScriptContext context)
+    private static SalinasValue numericCalculation(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
-        final SalinasConfig config = (SalinasConfig) context.getAttribute("salinasConfig");
+        final SalinasConfig config = context.getConfig();
 
         final List<SalinasValue> values = new ArrayList<>(4);
         for (int count = 0; count < node.jjtGetNumChildren(); count++) {
@@ -217,7 +213,7 @@ public class ExpressionInterpreter implements InterpreterDelegate {
         return new SalinasValue(currentValue, SalinasType.NUMBER);
     }
 
-    private static SalinasValue comparativeEvaluation(SalinasNode node, ScriptContext context)
+    private static SalinasValue comparativeEvaluation(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         boolean usingStrings = false;
         List<? extends ComparativeOp> opTypes = (List<? extends ComparativeOp>) node.jjtGetValue();

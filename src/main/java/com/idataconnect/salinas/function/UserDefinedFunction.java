@@ -4,14 +4,14 @@
 package com.idataconnect.salinas.function;
 
 import com.idataconnect.salinas.SalinasException;
-import com.idataconnect.salinas.data.ConversionException;
 import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
+import com.idataconnect.salinas.interpreter.SalinasExecutionContext;
 import com.idataconnect.salinas.interpreter.SalinasInterpreter;
 import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
-import java.util.Optional;
 import javax.script.ScriptContext;
+
 
 /**
  * A function which is implemented natively in pure Salinas script.
@@ -19,106 +19,75 @@ import javax.script.ScriptContext;
 public class UserDefinedFunction extends Function {
 
     private final SalinasValue functionValue;
-    private final FunctionContext functionContext;
 
     /**
      * Creates a new Salinas function, given the value which contains the
      * parsed function.
      * @param functionValue the salinas value whose <code>getValue()</code>
      * method will return the function node
-     * @param functionContext the function context associated with the script
-     * context
      */
-    public UserDefinedFunction(SalinasValue functionValue, FunctionContext functionContext) {
+    public UserDefinedFunction(SalinasValue functionValue) {
         this.functionValue = functionValue;
-        this.functionContext = functionContext;
-    }
-
-    @Override
-    public SalinasValue call(ScriptContext context, SalinasValue... parameters) throws SalinasException {
-        assert functionValue.getValue() instanceof SalinasNode
-                : "Raw function value should be of type SalinasNode but it is of type "
-                + functionValue.getValue().getClass().getName();
-        final SalinasNode node = (SalinasNode) functionValue.getValue();
-        assert node.getId() == JJTFUNCTIONDECLARATION
-                : "Function node is not a function declaration";
-
-        // Apply all of the parameters to the function
-        int parameterCount = 0;
-        for (int count = 0; count < node.jjtGetNumChildren(); count++) {
-            final SalinasNode childNode = (SalinasNode) node.jjtGetChild(count);
-            switch (childNode.getId()) {
-                case JJTIDENTIFIER:
-                    break;
-                case JJTFUNCTIONPARAMETER:
-                    // Check if a value was passed in for this parameter
-                    if (parameters.length > parameterCount) {
-                        // Assign the passed value to the parameter variable
-                        parameterAssign((SalinasNode) childNode.jjtGetChild(0),
-                                parameters[parameterCount++], node, context);
-                    } else {
-                        // Check whether this parameter has a default value
-                        if (childNode.jjtGetNumChildren() > 1) {
-                            final SalinasValue defaultValue
-                                    = SalinasInterpreter.interpret(
-                                            (SalinasNode) childNode.jjtGetChild(1),
-                                            functionContext.getScriptContext());
-                            // Assign the default value to the parameter variable
-                            parameterAssign((SalinasNode) childNode.jjtGetChild(0),
-                                    defaultValue, node, context);
-                        } else {
-                            throw new FunctionCallException("Not enough parameters passed to function");
-                        }
-                    }   break;
-                default:
-                    // Statements inside the function
-                    SalinasInterpreter.interpret(childNode, functionContext.getScriptContext());
-                    SalinasValue returning = (SalinasValue) functionContext
-                            .getScriptContext().getAttribute("returning",
-                                    ScriptContext.ENGINE_SCOPE);
-                    if (returning != null) {
-                        functionContext.getScriptContext().removeAttribute("returning",
-                                ScriptContext.ENGINE_SCOPE);
-                        return returning;
-                    }   break;
-            }
-        }
-
-        return new SalinasValue("Function at " + node.getBeginLine() + "," + node.getBeginColumn());
     }
 
     /**
-     * Assigns the parameter defined in the identifier node to the given value,
-     * and stores that value in the given function node.
-     * @param identifierNode the identifier node which defined the function
-     * parameter
-     * @param value the value to assign
-     * @param functionNode the function node which should hold the value
-     * @throws ConversionException if an error occurs during conversion of values
+     * Old constructor for backward compatibility if needed, but the second arg is unused now.
      */
-    void parameterAssign(
-            final SalinasNode identifierNode,
-            final SalinasValue value,
-            final SalinasNode functionNode,
-            final ScriptContext context
-            ) throws ConversionException {
-        Optional<SalinasValue> existingVar = functionNode.getVariable(
-                (String) identifierNode.jjtGetValue(), false, context);
-        if (existingVar.isPresent()) {
-            existingVar.get().setValue(value);
-        } else {
-            functionNode.setVariable((String) identifierNode.jjtGetValue(),
-                    value, context);
+    public UserDefinedFunction(SalinasValue functionValue, FunctionContext functionContext) {
+        this(functionValue);
+    }
 
-            if (identifierNode.jjtGetNumChildren() > 0) {
-                // parameter has strong type
-                assert ((SalinasNode) identifierNode.jjtGetChild(0)).getId()
-                        == JJTDATATYPE;
-                final SalinasType dataType
-                        = (SalinasType) ((SalinasNode) identifierNode.jjtGetChild(0))
-                        .jjtGetValue();
-                value.setStrongType(dataType);
+    @Override
+    public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+        assert functionValue.getValue() instanceof SalinasNode;
+        final SalinasNode node = (SalinasNode) functionValue.getValue();
+        
+        context.pushScope();
+        try {
+            int parameterCount = 0;
+            for (int count = 0; count < node.jjtGetNumChildren(); count++) {
+                final SalinasNode childNode = (SalinasNode) node.jjtGetChild(count);
+                switch (childNode.getId()) {
+                    case JJTIDENTIFIER:
+                        // Function name, skip
+                        break;
+                    case JJTFUNCTIONPARAMETER:
+                        final SalinasNode identifierNode = (SalinasNode) childNode.jjtGetChild(0);
+                        final String paramName = (String) identifierNode.jjtGetValue();
+                        SalinasValue paramValue;
+
+                        if (parameters.length > parameterCount) {
+                            paramValue = parameters[parameterCount++];
+                        } else if (childNode.jjtGetNumChildren() > 1) {
+                            paramValue = SalinasInterpreter.interpret((SalinasNode) childNode.jjtGetChild(1), context);
+                        } else {
+                            throw new FunctionCallException("Not enough parameters passed to function " + paramName);
+                        }
+
+                        // Apply strong type if present
+                        if (identifierNode.jjtGetNumChildren() > 0) {
+                            final SalinasType dataType = (SalinasType) ((SalinasNode) identifierNode.jjtGetChild(0)).jjtGetValue();
+                            paramValue.setStrongType(dataType);
+                        }
+                        
+                        context.setVariable(paramName, paramValue);
+                        break;
+                    default:
+                        // Execute statement
+                        SalinasInterpreter.interpret(childNode, context);
+                        
+                        // Check for return
+                        SalinasValue returning = (SalinasValue) context.getScriptContext().getAttribute("returning", ScriptContext.ENGINE_SCOPE);
+                        if (returning != null) {
+                            context.getScriptContext().removeAttribute("returning", ScriptContext.ENGINE_SCOPE);
+                            return returning;
+                        }
+                        break;
+                }
             }
+            return SalinasValue.NULL;
+        } finally {
+            context.popScope();
         }
     }
 }

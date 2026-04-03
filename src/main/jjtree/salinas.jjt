@@ -39,12 +39,12 @@ MORE :
 
 TOKEN : { < EOL : "\r" | "\n" | "\r\n" > }
 TOKEN : { < SL_COMMENT_START : <SL_COMMENT_SLASHES> | <SL_COMMENT_AMPERSANDS> > }
+TOKEN : { < EQUAL_TO_EXACT : "===" > }
+TOKEN : { < NOT_EQUAL_TO_EXACT : "!==" > }
 TOKEN : { < EQUAL_TO : "==" > }
 TOKEN : { < NOT_EQUAL_TO : "!=" > }
 TOKEN : { < STARTS_WITH : "=" > }
 TOKEN : { < NOT_STARTS_WITH : "<>" | "#" > }
-TOKEN : { < EQUAL_TO_EXACT : "===" > }
-TOKEN : { < NOT_EQUAL_TO_EXACT : "!==" > }
 TOKEN : { < LESS_THAN_OR_EQUAL_TO : "<=" | "=<" > }
 TOKEN : { < GREATER_THAN_OR_EQUAL_TO : ">=" | "=>" > }
 TOKEN : { < LESS_THAN : "<" > }
@@ -56,8 +56,8 @@ TOKEN : { < MINUS : "-" > }
 TOKEN : { < MOD : "%" > }
 TOKEN : { < EXP : "**" | "^" > }
 TOKEN : { < CONTAINS : "$" > }
+TOKEN : { < DOUBLE_SEMICOLON : ";;" > }
 TOKEN : { < SEMICOLON : ";" > }
-TOKEN : { < DOUBLE_SEMICOLON : <SEMICOLON> <SEMICOLON> > }
 TOKEN : { < ASSIGN : ":=" > }
 TOKEN : { < AND : "AND" | ".AND." > }
 TOKEN : { < OR : "OR" | ".OR." > }
@@ -69,11 +69,11 @@ TOKEN : { < NUMBER_TYPE : ":NUMBER" > }
 TOKEN : { < STRING_TYPE : ":STRING" > }
 TOKEN : { < DATE_TYPE : ":DATE" > }
 TOKEN : { < BOOLEAN_TYPE : ":BOOLEAN" > }
-TOKEN : { < PUBLIC : "PUBLIC" > }
-TOKEN : { < STATIC : "STATIC" > }
+TOKEN : { < PUBLIC : "PUBL" ("I" ("C")?)? > }
+TOKEN : { < STATIC : "STAT" ("I" ("C")?)? > }
 TOKEN : { < USE : "USE" > }
 TOKEN : { < IN : "IN" > }
-TOKEN : { < ALIAS : "ALIAS" > }
+TOKEN : { < ALIAS : "ALIA" ("S")? > }
 TOKEN : { < PRINT : "??" > }
 TOKEN : { < PRINTLN : "?" > }
 TOKEN : { < PRINTPRELN : "???" > }
@@ -83,21 +83,24 @@ TOKEN : { < ON : "ON" > }
 TOKEN : { < TO : "TO" > }
 TOKEN : { < DO : "DO" > }
 TOKEN : { < FOR : "FOR" > }
-TOKEN : { < NEXT : "NEXT" | "ENDFOR" > }
+TOKEN : { < NEXT : "NEXT" | "ENDFO" ("R")? > }
 TOKEN : { < STEP : "STEP" > }
-TOKEN : { < WHILE : "WHILE" > }
-TOKEN : { < UNTIL : "UNTIL" > }
+TOKEN : { < WHILE : "WHIL" ("E")? > }
+TOKEN : { < UNTIL : "UNTI" ("L")? > }
 TOKEN : { < ENDDO : "ENDDO" > }
 TOKEN : { < CASE : "CASE" > }
-TOKEN : { < OTHERWISE : "OTHERWISE" > }
-TOKEN : { < ENDCASE : "ENDCASE" > }
+TOKEN : { < OTHERWISE : "OTHE" ("R" ("W" ("I" ("S" ("E")?)?)?)?)? > }
+TOKEN : { < ENDCASE : "ENDCA" ("S" ("E")?)? > }
 TOKEN : { < IF : "IF" > }
-TOKEN : { < ELSEIF : "ELSEIF" > }
+TOKEN : { < ELSEIF : "ELSEI" ("F")? > }
 TOKEN : { < ELSE : "ELSE" > }
 TOKEN : { < ENDIF : "ENDIF" > }
-TOKEN : { < FUNCTION : "FUNCTION" | "PROCEDURE" > }
-TOKEN : { < ENDFUNC : "ENDFUNC" | "ENDPROC" > }
-TOKEN : { < RETURN : "RETURN" > }
+TOKEN : { < FUNCTION : "FUNC" ("T" ("I" ("O" ("N")?)?)?)? | "PROC" ("E" ("D" ("U" ("R" ("E")?)?)?)?)? > }
+TOKEN : { < ENDFUNC : "ENDFU" ("N" ("C")?)? | "ENDP" ("R" ("O" ("C")?)?)? > }
+TOKEN : { < RETURN : "RETU" ("R" ("N")?)? > }
+TOKEN : { < REPLACE : "REPL" ("A" ("C" ("E")?)?)? > }
+TOKEN : { < CREATE : "CREA" ("T" ("E")?)? > }
+TOKEN : { < WITH : "WITH" > }
 TOKEN : { < DATE_LITERAL : <UNAMBIGUOUS_DATE_LITERAL> | <AMBIGUOUS_DATE_LITERAL> > }
 TOKEN : { < NUMBER_LITERAL : <INTEGER_LITERAL> | <DECIMAL_LITERAL> | <HEX_LITERAL> | <BINARY_LITERAL> > }
 TOKEN : { < IDENTIFIER : <LETTER> (<LETTER> | <DIGIT>)* > }
@@ -121,6 +124,11 @@ SalinasNode buildAst() #SalinasScript : {}
     {return jjtThis;}
 }
 
+void EndOfStatement() #void : {}
+{
+    <EOL> | <EOF> | <DOUBLE_SEMICOLON>
+}
+
 void TerminatedStatement() #void : {}
 {
     Statement() EndOfStatement()
@@ -129,6 +137,8 @@ void TerminatedStatement() #void : {}
 void Statement() : {}
 {
     UseStatement()
+    | ReplaceStatement()
+    | CreateStatement()
     | ForLoop()
     | PrintStatement()
     | IfBlock()
@@ -136,23 +146,30 @@ void Statement() : {}
     | LOOKAHEAD(<DO> <WHILE>) WhileLoop()
     | CaseBlock()
     | LOOKAHEAD(<SET> <IDENTIFIER>) SetStatement()
-    /* Need two lookaheads for array access since the lookahead inside
-       ArrayAccessExpression() distrupts LOOKAHEAD(ArrayAccessExpression() <STARTS_WITH>)
+    /* Need two lookaheads for array access since the semantic lookahead inside
+       ArrayAccessExpression() prevents us from doing LOOKAHEAD(ArrayAccessExpression() <STARTS_WITH>)
      */
     | LOOKAHEAD(LegacyArrayAccessExpression() <STARTS_WITH>) AssignmentStatement()
     | LOOKAHEAD(NormalArrayAccessExpression() <STARTS_WITH>) AssignmentStatement()
     | Expression()
 }
 
-/* Special case where "<var> =" acts as assignment at the beginning of a line. */
+void ReplaceStatement() #Replace : {Token t;}
+{
+    t = <REPLACE> {initNode(jjtThis, t); t = null;}
+    Identifier() <WITH> Expression()
+    (<IN> Expression())?
+}
+
+void CreateStatement() #Create : {Token t;}
+{
+    t = <CREATE> {initNode(jjtThis, t); t = null;}
+    (Identifier())?
+}
+
 void AssignmentStatement() #Assign : {}
 {
     ArrayAccessExpression() <STARTS_WITH> Expression()
-}
-
-void EndOfStatement() #void : {}
-{
-    <EOL> | <EOF> | <DOUBLE_SEMICOLON>
 }
 
 void ReturnStatement() #Return : {Token t;}
@@ -164,7 +181,6 @@ void ReturnStatement() #Return : {Token t;}
 void UseStatement() #Use :
 {
     Token t;
-    String s = null;
 }
 {
     t = <USE> {initNode(jjtThis, t); t = null;}
@@ -174,7 +190,6 @@ void UseStatement() #Use :
             | (<ALIAS> t = <IDENTIFIER> {jjtThis.jjtSetValue(t.image);}) #Alias
         )*
     )?
-    {jjtThis.jjtSetValue(s); t = null; s = null;}
 }
 
 void PrintStatement() #void : {Token t;}
@@ -363,8 +378,6 @@ void ContainsExpression() #void : {}
     ) #Contains(>1)
 }
 
-/* Add multiple sets of brackets using looping since we can't use
-   left recursion. This must be resolved in the interpreter. */
 void ArrayAccessExpression() #void : {}
 {
     LOOKAHEAD(FunctionCallExpression() "[" Expression() ",") LegacyArrayAccessExpression()
@@ -491,8 +504,6 @@ void CaseBlock() : {Token t;}
     ((<OTHERWISE> EndOfStatement() (TerminatedStatement())*) #Otherwise)?
     <ENDCASE>
 }
-
-/* Identifier and literals */
 
 void Literal() #void : {}
 {

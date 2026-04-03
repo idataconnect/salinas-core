@@ -9,7 +9,6 @@ import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
 import java.math.BigDecimal;
-import javax.script.ScriptContext;
 
 /**
  * Interpreter delegate for SET statements.
@@ -31,7 +30,7 @@ public class SetInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         SalinasNode identifierNode = node.getChild(0);
         String identifierName = (String) identifierNode.jjtGetValue();
@@ -51,8 +50,7 @@ public class SetInterpreter implements InterpreterDelegate {
             if (decimals < 0 || decimals > 18) {
                 throw new SalinasException("Decimals must be between 0 and 18");
             }
-            ((SalinasConfig) context.getAttribute("salinasConfig"))
-                    .setDecimals(decimals);
+            context.getConfig().setDecimals(decimals);
             return v;
         }
 

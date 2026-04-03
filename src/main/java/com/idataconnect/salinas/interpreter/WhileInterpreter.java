@@ -7,7 +7,7 @@ import com.idataconnect.salinas.SalinasException;
 import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
-import javax.script.ScriptContext;
+
 
 /**
  * Interpreter delegate implementation for WHILE loop nodes.
@@ -29,7 +29,7 @@ public class WhileInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         final SalinasNode expressionNode = (SalinasNode) node.jjtGetChild(0);
         SalinasValue returnValue = SalinasValue.NULL;
@@ -39,8 +39,7 @@ public class WhileInterpreter implements InterpreterDelegate {
                 returnValue = SalinasInterpreter.interpret(
                         (SalinasNode) node.jjtGetChild(count), context);
 
-                final SalinasValue returning = (SalinasValue) context.getAttribute("returning",
-                        ScriptContext.ENGINE_SCOPE);
+                final SalinasValue returning = context.getReturning();
                 if (returning != null) {
                     return returning;
                 }

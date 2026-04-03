@@ -9,7 +9,7 @@ import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTDATATYPE;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTIDENTIFIER;
-import javax.script.ScriptContext;
+
 
 /**
  * Function declaration interpreter delegate implementation.
@@ -32,7 +32,7 @@ public class FunctionDeclInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         final SalinasNode firstChild = node.getChild(0);
         SalinasNode identifierNode;
@@ -42,7 +42,7 @@ public class FunctionDeclInterpreter implements InterpreterDelegate {
 
         if (identifierPresent) {
             identifierNode = firstChild;
-            SalinasInterpreter.setVariable(node, (String) identifierNode.jjtGetValue(), function, context);
+            context.setGlobalVariable((String) identifierNode.jjtGetValue(), function);
             if (identifierNode.jjtGetNumChildren() > 0) {
                 // has strong type
                 assert ((SalinasNode) identifierNode.jjtGetChild(0)).getId()

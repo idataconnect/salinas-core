@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.script.ScriptContext;
+
 
 /**
  * Interprets nodes using a script context. This is the main entry point for
@@ -94,6 +94,12 @@ public class SalinasInterpreter {
                 SetInterpreter.getInstance());
         delegateMap.put(JJTEXPONENT,
                 ExpressionInterpreter.getInstance());
+        delegateMap.put(JJTUSE,
+                UseInterpreter.getInstance());
+        delegateMap.put(JJTREPLACE,
+                ReplaceInterpreter.getInstance());
+        delegateMap.put(JJTCREATE,
+                CreateInterpreter.getInstance());
     }
 
     private SalinasInterpreter() {}
@@ -103,14 +109,13 @@ public class SalinasInterpreter {
      * will be interpreted recursively as required, by each interpreter delegate.
      *
      * @param node the node to interpret
-     * @param context the JSR-233 script context
+     * @param context the execution context
      * @return the result from interpreting the node, as a value
      * @throws SalinasException if an error occurs
      */
-    public static SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public static SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
-        SalinasValue returning = (SalinasValue) context.getAttribute("returning",
-                ScriptContext.ENGINE_SCOPE);
+        SalinasValue returning = context.getReturning();
         if (returning != null) {
             return returning;
         }
@@ -121,58 +126,7 @@ public class SalinasInterpreter {
         return delegate.interpret(node, context);
     }
 
-    /**
-     * Import all named functions in the current node scope, for forward
-     * reference in the script context. This is generally called on the root
-     * node of the AST of each script.
-     *
-     * @param node the node to import functions from
-     * @param context the script context
-     */
-    public static void importFunctions(SalinasNode node, ScriptContext context) {
-        if (node.getId() == JJTFUNCTIONDECLARATION) {
-            final SalinasNode firstChild = (SalinasNode) node.jjtGetChild(0);
-            if (firstChild.getId() == JJTIDENTIFIER) {
-                final String name = (String) firstChild.jjtGetValue();
-                final SalinasValue functionValue = new SalinasValue(
-                        node, SalinasType.FUNCTION);
-                context.getBindings(ScriptContext.ENGINE_SCOPE)
-                        .put(name.toUpperCase(), functionValue);
-            }
-        }
-        // Recurse on children to import functions defined anywhere in the script
-        for (int i = 0; i < node.jjtGetNumChildren(); i++) {
-            importFunctions((SalinasNode) node.jjtGetChild(i), context);
-        }
-    }
-
     static InterpreterDelegate getDelegate(int nodeId) {
         return delegateMap.get(Integer.valueOf(nodeId));
-    }
-
-    /**
-     * Sets the variable into the given node. This acts as a general helper function
-     * for setting variables in the Salinas AST.
-     *
-     * @param node the node to set the variable in
-     * @param name the name of the variable
-     * @param value the value of the variable
-     * @param context the script context
-     * @return the variable, holding the value that was set
-     * @throws ConversionException if the variable exists and is an incompatible strong type
-     */
-    public static SalinasValue setVariable(SalinasNode node, String name, SalinasValue value, ScriptContext context)
-            throws ConversionException {
-        SalinasNode identifierNode = node.getChild(0);
-        Optional<SalinasValue> variable = node.getVariable(
-                (String) identifierNode.jjtGetValue(), context);
-
-        if (variable.isPresent()) {
-            variable.get().setValue(value);
-            return variable.get();
-        } else {
-            return ((SalinasNode) node.jjtGetParent()).getFirstVariableHolder()
-                    .setVariable((String) identifierNode.jjtGetValue(), value, context);
-        }
     }
 }

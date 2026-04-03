@@ -11,7 +11,7 @@ import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTIDENTIFIER;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTSTEP;
 import java.math.BigDecimal;
-import javax.script.ScriptContext;
+
 
 /**
  * Interpreter delegate implementation for FOR loop nodes.
@@ -33,14 +33,14 @@ public class ForInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         assert ((SalinasNode) node.jjtGetChild(0)).getId() == JJTIDENTIFIER;
         SalinasNode identifierNode = (SalinasNode) node.jjtGetChild(0);
         final String identifierName = (String) identifierNode.jjtGetValue();
-        SalinasValue indexValue = node.getVariable(identifierName, context).orElseGet(() -> {
+        SalinasValue indexValue = context.getVariable(identifierName).orElseGet(() -> {
             SalinasValue v = new SalinasValue(BigDecimal.ZERO, SalinasType.NUMBER, true);
-            node.setVariable(identifierName, v, context);
+            context.setVariable(identifierName, v);
             return v;
         });
 
@@ -67,8 +67,7 @@ public class ForInterpreter implements InterpreterDelegate {
                 final SalinasNode currentNode = (SalinasNode) node.jjtGetChild(count);
                 returnValue = SalinasInterpreter.interpret(currentNode, context);
 
-                final SalinasValue returning = (SalinasValue) context.getAttribute("returning",
-                        ScriptContext.ENGINE_SCOPE);
+                final SalinasValue returning = context.getReturning();
                 if (returning != null) {
                     return returning;
                 }
@@ -80,8 +79,7 @@ public class ForInterpreter implements InterpreterDelegate {
         }
         // Interpret statements inside the loop one last time
         for (int count = startIndex; count < node.jjtGetNumChildren(); count++) {
-            final SalinasValue returning = (SalinasValue) context.getAttribute("returning",
-                    ScriptContext.ENGINE_SCOPE);
+            final SalinasValue returning = context.getReturning();
             if (returning != null) {
                 return returning;
             }

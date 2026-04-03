@@ -150,11 +150,7 @@ public class SalinasValue {
      */
     public SalinasValue(Object value) {
         this.value = value;
-        try {
-            setCurrentType(SalinasType.valueOf(value.getClass()));
-        } catch (SalinasException ex) {
-            throw new IllegalArgumentException("Error during initial value creation.", ex);
-        }
+        this.currentType = SalinasType.valueOf(value.getClass());
     }
 
     /**
@@ -254,21 +250,16 @@ public class SalinasValue {
     }
 
     /**
-     * Gets the string value to be displayed to the user, using the settings
-     * from the given <strong>context</strong>.
-     * <p>
      * While {@link #toString()} will give a generic string representation of
      * any value, this method will return a string that the user expects based
      * on their current context configuration. For example, numbers will be
      * formatted with the number of decimal points that have been set with
      * a <code>SET DECIMALS</code> command.
      *
-     * @param context the current script context
+     * @param config the current salinas configuration
      * @return the string value
      */
-    public String getDisplayValue(ScriptContext context) {
-        final SalinasConfig config = (SalinasConfig) context.getAttribute("salinasConfig");
-
+    public String getDisplayValue(SalinasConfig config) {
         if (getCurrentType().equals(SalinasType.NUMBER)) {
             if (getValue() == null) {
                 return "0";

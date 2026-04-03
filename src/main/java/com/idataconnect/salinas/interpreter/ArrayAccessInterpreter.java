@@ -11,7 +11,6 @@ import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
 import java.util.Optional;
-import javax.script.ScriptContext;
 
 /**
  * Interpreter delegate implementation for array access statement nodes.
@@ -34,7 +33,7 @@ public class ArrayAccessInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         // ArrayAccess
         // L Identifier
@@ -46,8 +45,8 @@ public class ArrayAccessInterpreter implements InterpreterDelegate {
         final SalinasNode identifierNode = (SalinasNode) node.jjtGetChild(0);
         assert identifierNode.getId() == JJTIDENTIFIER;
         // Try to find an existing variable
-        Optional<SalinasValue> existingArray = node.getVariable(
-                (String) identifierNode.jjtGetValue(), context);
+        Optional<SalinasValue> existingArray = context.getVariable(
+                (String) identifierNode.jjtGetValue());
         if (existingArray.isPresent()) {
             if (existingArray.get().getCurrentType() != SalinasType.ARRAY) {
                 throw new ConversionException(identifierNode.jjtGetValue()

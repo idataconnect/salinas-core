@@ -6,7 +6,6 @@ package com.idataconnect.salinas.interpreter;
 import com.idataconnect.salinas.SalinasException;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
-import javax.script.ScriptContext;
 
 /**
  * Interpreter delegate interface.
@@ -14,12 +13,12 @@ import javax.script.ScriptContext;
 public interface InterpreterDelegate {
 
     /**
-     * interpret the given node using state from the given script context.
+     * interpret the given node using state from the given execution context.
      * @param node the AST node to be interpreted
-     * @param context the script context
+     * @param context the execution context
      * @return the value as a result of interpreting the node
      * @throws SalinasException if a runtime error occurs
      */
-    SalinasValue interpret(SalinasNode node, ScriptContext context)
+    SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException;
 }

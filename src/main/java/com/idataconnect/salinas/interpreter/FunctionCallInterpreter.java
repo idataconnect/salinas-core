@@ -13,7 +13,7 @@ import com.idataconnect.salinas.function.FunctionContext;
 import com.idataconnect.salinas.function.UserDefinedFunction;
 import com.idataconnect.salinas.function.StackFrame;
 import com.idataconnect.salinas.parser.SalinasNode;
-import javax.script.ScriptContext;
+
 
 /**
  * Interpreter delegate implementation for function call nodes.
@@ -35,13 +35,13 @@ public class FunctionCallInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
 
         assert node.jjtGetNumChildren() > 0;
         final SalinasNode identifierNode = (SalinasNode) node.jjtGetChild(0);
-        final FunctionContext functionContext = (FunctionContext) context
-                .getAttribute("salinasFunctionContext", ScriptContext.ENGINE_SCOPE);
+        final FunctionContext functionContext = context.getFunctionContext();
+        
         Function function = functionContext.getFunction(
                 (String) identifierNode.jjtGetValue(), node).orElseThrow(() -> new FunctionCallException("Function "
                 + identifierNode.jjtGetValue() + " not found",
@@ -62,10 +62,12 @@ public class FunctionCallInterpreter implements InterpreterDelegate {
             }
 
             // Push the calling node onto the call stack
-            final CallStack callStack = (CallStack) context.getAttribute(
-                    "salinasCallStack", ScriptContext.ENGINE_SCOPE);
+            final CallStack callStack = context.getCallStack();
             callStack.push(node);
+            
+            // Note: UserDefinedFunction.call will push/pop its own scope
             returnValue = function.call(context, parameters);
+            
             final StackFrame pushedFrame = callStack.pop();
             assert pushedFrame.getNode() == node : "Call stack unbalanced";
 

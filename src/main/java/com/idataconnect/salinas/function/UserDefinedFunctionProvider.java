@@ -8,6 +8,7 @@ import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
 import java.util.Optional;
+import javax.script.ScriptContext;
 
 /**
  * A function provider implementation which calls user defined functions.
@@ -28,15 +29,23 @@ public class UserDefinedFunctionProvider extends FunctionProvider {
     @Override
     public Optional<Function> getFunction(String name, SalinasNode node)
             throws ConversionException {
-        Optional<SalinasValue> var = node.getVariable(name, functionContext.getScriptContext());
-        if (!var.isPresent()) {
+        
+        // Functions are stored as global variables in ENGINE_SCOPE
+        Object attr = functionContext.getScriptContext().getAttribute(name.toUpperCase(), ScriptContext.ENGINE_SCOPE);
+        if (attr == null) {
+            attr = functionContext.getScriptContext().getAttribute(name.toUpperCase(), ScriptContext.GLOBAL_SCOPE);
+        }
+        
+        if (attr == null) {
             return Optional.empty();
-        } else if (var.get().getCurrentType() != SalinasType.FUNCTION) {
-            throw new ConversionException(name
-                    + " is not a function; Its type is " + var.get().getCurrentType(),
-                    node.getFilename(), node.getBeginLine(), node.getBeginColumn());
+        }
+        
+        SalinasValue var = SalinasValue.valueOf(attr);
+        
+        if (var.getCurrentType() != SalinasType.FUNCTION) {
+            return Optional.empty();
         }
 
-        return Optional.of(new UserDefinedFunction(var.get(), functionContext));
+        return Optional.of(new UserDefinedFunction(var));
     }
 }

@@ -1,142 +1,72 @@
 /*
- * Copyright 2011-2016 i Data Connect!
+ * Copyright (c) 2011-2016 i Data Connect!
  */
-
 package com.idataconnect.salinas;
 
-import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.function.CallStack;
 import com.idataconnect.salinas.function.FunctionContext;
+import com.idataconnect.salinas.interpreter.SalinasExecutionContext;
 import com.idataconnect.salinas.interpreter.SalinasInterpreter;
 import com.idataconnect.salinas.parser.ParseException;
 import com.idataconnect.salinas.parser.SalinasNode;
 import com.idataconnect.salinas.parser.SalinasParser;
-import com.idataconnect.salinas.parser.TokenMgrError;
-import java.io.*;
-import java.nio.charset.Charset;
+import com.idataconnect.salinas.data.SalinasValue;
+import java.io.Reader;
+import java.io.StringReader;
 import javax.script.CompiledScript;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
 /**
- * JSR-233 CompiledScript implementation for Salinas.
+ * Compiled Salinas script implementation.
  */
 public class SalinasCompiledScript extends CompiledScript {
 
     private final SalinasNode ast;
-    private final ScriptEngine engine;
-    private final String filename;
+    private final SalinasScriptEngine engine;
 
-    /**
-     * Creates a compiled script instance using the root of the abstract
-     * syntax tree and the script engine.
-     * @param ast the root of the abstract syntax tree
-     * @param engine the script engine used to parse the script
-     */
-    public SalinasCompiledScript(SalinasNode ast, ScriptEngine engine) {
+    private SalinasCompiledScript(SalinasNode ast, SalinasScriptEngine engine) {
         this.ast = ast;
         this.engine = engine;
-        this.filename = "<unknown>";
     }
 
     /**
-     * Creates a compiled script instance using the root of the abstract
-     * syntax tree, the script engine, and the filename of the script being
-     * parsed.
-     * @param ast the root of the abstract syntax tree
-     * @param engine the script engine used to parse the script
-     * @param filename the filename of the script being parsed
-     */
-    public SalinasCompiledScript(SalinasNode ast, ScriptEngine engine, String filename) {
-        this.ast = ast;
-        this.engine = engine;
-        this.filename = filename;
-    }
-
-    /**
-     * Compiles a script in string form.
-     * @param script the script to compile
-     * @param engine the script engine used to parse the script
+     * Compiles the script contained in the given reader.
+     *
+     * @param script the reader containing the script
+     * @param engine the engine that will run the script
      * @return a compiled script instance
-     * @throws ScriptException if an error occurs during compilation
+     * @throws ScriptException if a parsing error occurs
      */
-    public static SalinasCompiledScript compile(String script, ScriptEngine engine)
-            throws ScriptException {
-        return compile(new StringReader(script), engine);
-    }
-
-    /**
-     * Compiles a script from the given reader.
-     * @param reader the reader to read the script from
-     * @param engine the script engine used to parse the script
-     * @return a compiled script instance
-     * @throws ScriptException if an error occurs during compilation
-     */
-    public static SalinasCompiledScript compile(final Reader reader,
-            final ScriptEngine engine) throws ScriptException {
-        return compile(reader, engine, "<unknown>");
-    }
-
-    /**
-     * Compiles a script using the given file, using the default character set.
-     * @param file the file to read the script from
-     * @param engine the engine used to parse the script
-     * @return a compiled script instance
-     * @throws ScriptException if an error occurs during compilation
-     */
-    public static SalinasCompiledScript compile(final File file,
-            final ScriptEngine engine) throws ScriptException {
-        return compile(file, Charset.defaultCharset(), engine);
-    }
-
-    /**
-     * Compiles a script using the given file and character set.
-     * @param file the file to read the script from
-     * @param charset the character set used when reading the text file
-     * @param engine the engine used to parse the script
-     * @return a compiled script instance
-     * @throws ScriptException if an error occurs during compilation
-     */
-    public static SalinasCompiledScript compile(
-            File file,
-            Charset charset,
-            ScriptEngine engine) throws ScriptException {
+    public static SalinasCompiledScript compile(Reader script,
+            SalinasScriptEngine engine) throws ScriptException {
         try {
-            return compile(new FileReader(file, charset), engine, file.getAbsolutePath());
-        } catch (FileNotFoundException ex) {
-            throw new ScriptException("File not found: " + file.getAbsolutePath());
-        } catch (IOException ex) {
-            ScriptException se = new ScriptException("I/O Error for file: " + file.getAbsolutePath());
+            final SalinasParser parser = new SalinasParser(script);
+            final SalinasNode ast = parser.buildAst();
+            return new SalinasCompiledScript(ast, engine);
+        } catch (ParseException | com.idataconnect.salinas.parser.TokenMgrError ex) {
+            final ScriptException se = new ScriptException(ex.getMessage());
             se.initCause(ex);
             throw se;
         }
     }
 
     /**
-     * Compiles a script using the given reader, the given script engine,
-     * and the given filename that the reader is reading the script from.
-     * @param reader the reader to read the script from
-     * @param engine the engine used to parse the script
-     * @param filename the filename that the reader is reading the script from
+     * Compiles the script contained in the given string.
+     *
+     * @param script the string containing the script
+     * @param engine the engine that will run the script
      * @return a compiled script instance
-     * @throws ScriptException if an error occurs during compilation
+     * @throws ScriptException if a parsing error occurs
      */
-    public static SalinasCompiledScript compile(final Reader reader,
-            final ScriptEngine engine,
-            final String filename)
-            throws ScriptException {
+    public static SalinasCompiledScript compile(String script,
+            SalinasScriptEngine engine) throws ScriptException {
         try {
-            SalinasParser parser = new SalinasParser(reader);
-            SalinasNode root = parser.buildAst();
-            SalinasInterpreter.importFunctions(root, engine.getContext());
-            root.setFilename(filename);
-            return new SalinasCompiledScript(root, engine, filename);
-        } catch (ParseException ex) {
-            throw new ScriptException("Parse error: " + ex.getMessage(),
-                    filename, ex.currentToken.next.beginLine,
-                    ex.currentToken.next.beginColumn);
-        } catch (TokenMgrError ex) {
+            final SalinasParser parser = new SalinasParser(new StringReader(script));
+            final SalinasNode ast = parser.buildAst();
+            return new SalinasCompiledScript(ast, engine);
+        } catch (ParseException | com.idataconnect.salinas.parser.TokenMgrError ex) {
             final ScriptException se = new ScriptException(ex.getMessage());
             se.initCause(ex);
             throw se;
@@ -152,26 +82,51 @@ public class SalinasCompiledScript extends CompiledScript {
     }
 
     private Object run(SalinasNode node, ScriptContext context) throws ScriptException {
-        SalinasConfig config = (SalinasConfig) context.getAttribute("salinasConfig");
-        if (config == null) {
-            config = new SalinasConfig();
-            context.setAttribute("salinasConfig", config,
+        if (context.getAttribute("salinasConfig") == null) {
+            context.setAttribute("salinasConfig", new SalinasConfig(),
                     ScriptContext.ENGINE_SCOPE);
+        }
+        if (context.getAttribute("salinasCallStack") == null) {
             context.setAttribute("salinasCallStack", new CallStack(),
                     ScriptContext.ENGINE_SCOPE);
+        }
+        if (context.getAttribute("salinasFunctionContext") == null) {
             context.setAttribute("salinasFunctionContext",
                     new FunctionContext(context),
                     ScriptContext.ENGINE_SCOPE);
         }
+        if (context.getAttribute("salinasWorkAreaManager") == null) {
+            context.setAttribute("salinasWorkAreaManager",
+                    new com.idataconnect.salinas.data.WorkAreaManager(),
+                    ScriptContext.ENGINE_SCOPE);
+        }
+
+        SalinasExecutionContext execContext = new SalinasExecutionContext(context);
+        importFunctions(node, execContext);
 
         try {
-            SalinasValue val = (SalinasValue) SalinasInterpreter.interpret(node, context);
+            SalinasValue val = (SalinasValue) SalinasInterpreter.interpret(node, execContext);
             return val == null ? null : val.getValue();
         } catch (SalinasException ex) {
             ScriptException se = new ScriptException(ex.getMessage(), ex.getFilename(),
                     ex.getBeginLine(), ex.getBeginColumn());
             se.addSuppressed(ex);
             throw se;
+        }
+    }
+
+    private void importFunctions(SalinasNode node, SalinasExecutionContext context) {
+        if (node.getId() == com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTFUNCTIONDECLARATION) {
+            final SalinasNode firstChild = (SalinasNode) node.jjtGetChild(0);
+            if (firstChild.getId() == com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTIDENTIFIER) {
+                final String name = (String) firstChild.jjtGetValue();
+                final SalinasValue functionValue = new SalinasValue(
+                        node, com.idataconnect.salinas.data.SalinasType.FUNCTION);
+                context.setGlobalVariable(name, functionValue);
+            }
+        }
+        for (int i = 0; i < node.jjtGetNumChildren(); i++) {
+            importFunctions((SalinasNode) node.jjtGetChild(i), context);
         }
     }
 

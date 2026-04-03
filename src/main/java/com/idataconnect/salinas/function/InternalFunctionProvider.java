@@ -7,6 +7,7 @@ import com.idataconnect.salinas.SalinasConfig;
 import com.idataconnect.salinas.SalinasException;
 import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
+import com.idataconnect.salinas.interpreter.SalinasExecutionContext;
 import com.idataconnect.salinas.parser.SalinasNode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -14,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import javax.script.ScriptContext;
+
 
 /**
  * A provider which contains internal (built in) functions, most of which
@@ -31,7 +32,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function UPPER = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws FunctionCallException {
             checkParameterCount("UPPER", 1, parameters);
             try {
@@ -51,7 +52,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function LOWER = new Function() {
         
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws FunctionCallException {
             checkParameterCount("LOWER", 1, parameters);
             try {
@@ -71,7 +72,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function LEFT = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("LEFT", 2, parameters);
             try {
@@ -98,7 +99,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function RIGHT = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("RIGHT", 2, parameters);
             try {
@@ -127,7 +128,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function SUBSTR = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("SUBSTR", 3, parameters);
             try {
@@ -149,6 +150,104 @@ public class InternalFunctionProvider extends FunctionProvider {
         }
     };
 
+    public static final Function EOF = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            com.idataconnect.salinas.data.WorkAreaManager wam = context.getWorkAreaManager();
+            java.util.Optional<com.idataconnect.salinas.data.WorkArea> wa = wam.getCurrentWorkArea();
+            if (wa.isPresent()) {
+                return new SalinasValue(wa.get().getDbf().eof(), SalinasType.BOOLEAN);
+            }
+            return SalinasValue.TRUE;
+        }
+    };
+
+    public static final Function BOF = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            com.idataconnect.salinas.data.WorkAreaManager wam = context.getWorkAreaManager();
+            java.util.Optional<com.idataconnect.salinas.data.WorkArea> wa = wam.getCurrentWorkArea();
+            if (wa.isPresent()) {
+                return new SalinasValue(wa.get().getDbf().bof(), SalinasType.BOOLEAN);
+            }
+            return SalinasValue.TRUE;
+        }
+    };
+
+    public static final Function RECNO = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            com.idataconnect.salinas.data.WorkAreaManager wam = context.getWorkAreaManager();
+            java.util.Optional<com.idataconnect.salinas.data.WorkArea> wa = wam.getCurrentWorkArea();
+            if (wa.isPresent()) {
+                return new SalinasValue(BigDecimal.valueOf(wa.get().getDbf().recno()), SalinasType.NUMBER);
+            }
+            return new SalinasValue(BigDecimal.ZERO, SalinasType.NUMBER);
+        }
+    };
+
+    public static final Function RECCOUNT = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            com.idataconnect.salinas.data.WorkAreaManager wam = context.getWorkAreaManager();
+            java.util.Optional<com.idataconnect.salinas.data.WorkArea> wa = wam.getCurrentWorkArea();
+            if (wa.isPresent()) {
+                return new SalinasValue(BigDecimal.valueOf(wa.get().getDbf().getStructure().getNumberOfRecords()), SalinasType.NUMBER);
+            }
+            return new SalinasValue(BigDecimal.ZERO, SalinasType.NUMBER);
+        }
+    };
+
+    public static final Function SKIP = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            com.idataconnect.salinas.data.WorkAreaManager wam = context.getWorkAreaManager();
+            java.util.Optional<com.idataconnect.salinas.data.WorkArea> wa = wam.getCurrentWorkArea();
+            if (wa.isPresent()) {
+                int skipCount = 1;
+                if (parameters.length > 0) {
+                    skipCount = ((BigDecimal) parameters[0].asType(SalinasType.NUMBER)).intValue();
+                }
+                try {
+                    wa.get().getDbf().skip(skipCount);
+                } catch (java.io.IOException ex) {
+                    throw new SalinasException("Error during SKIP", ex);
+                }
+            }
+            return SalinasValue.NULL;
+        }
+    };
+
+    public static final Function GOTO = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            checkParameterCount("GOTO", 1, parameters);
+            com.idataconnect.salinas.data.WorkAreaManager wam = context.getWorkAreaManager();
+            java.util.Optional<com.idataconnect.salinas.data.WorkArea> wa = wam.getCurrentWorkArea();
+            if (wa.isPresent()) {
+                int record = ((BigDecimal) parameters[0].asType(SalinasType.NUMBER)).intValue();
+                try {
+                    wa.get().getDbf().gotoRecord(record);
+                } catch (java.io.IOException ex) {
+                    throw new SalinasException("Error during GOTO", ex);
+                }
+            }
+            return SalinasValue.NULL;
+        }
+    };
+
+    public static final Function DELETED = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            com.idataconnect.salinas.data.WorkAreaManager wam = context.getWorkAreaManager();
+            java.util.Optional<com.idataconnect.salinas.data.WorkArea> wa = wam.getCurrentWorkArea();
+            if (wa.isPresent()) {
+                return new SalinasValue(wa.get().getDbf().deleted(), SalinasType.BOOLEAN);
+            }
+            return SalinasValue.FALSE;
+        }
+    };
+
     /**
      * Return the ASCII ordinal of the first character in the given string
      * parameter.
@@ -156,7 +255,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function ASC = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("ASC", 1, parameters);
             try {
@@ -180,7 +279,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function ABS = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("ABS", 1, parameters);
             try {
@@ -205,7 +304,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function VAL = new Function() {
         
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("VAL", 1, parameters);
             try {
@@ -232,11 +331,10 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function RANDOM = new Function() {
         
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("RANDOM", 0, 1, parameters);
-            final SalinasConfig config = (SalinasConfig) context
-                    .getAttribute("salinasConfig");
+            final SalinasConfig config = context.getConfig();
             try {
                 if (parameters.length == 1) {
                     final long seed = ((BigDecimal) parameters[0].asType(
@@ -265,7 +363,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function INT = new Function() {
         
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("INT", 1, parameters);
             try {
@@ -291,7 +389,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function ROUND = new Function() {
         
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("ROUND", 1, 2, parameters);
             final int decimals;
@@ -327,7 +425,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function PI = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("PI", 0, parameters);
             return SalinasValue.PI;
@@ -340,7 +438,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function AT = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("AT", 2, 3, parameters);
             try {
@@ -388,7 +486,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function RAT = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("RAT", 2, 3, parameters);
             try {
@@ -436,7 +534,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function IIF = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("IIF", 3, parameters);
             return ((Boolean) parameters[0].asType(SalinasType.BOOLEAN))
@@ -447,7 +545,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function CHR = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("CHR", 1, parameters);
             return new SalinasValue(new String(new int[] {((BigDecimal) parameters[0]
@@ -459,7 +557,7 @@ public class InternalFunctionProvider extends FunctionProvider {
     public static final Function CENTER = new Function() {
 
         @Override
-        public SalinasValue call(ScriptContext context, SalinasValue... parameters)
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
                 throws SalinasException {
             checkParameterCount("CENTER", 1, 3, parameters);
             String s = (String) parameters[0].asType(SalinasType.STRING);
@@ -542,6 +640,15 @@ public class InternalFunctionProvider extends FunctionProvider {
 
         // Conditional
         functionMap.put("IIF", IIF);
+
+        // DBF
+        functionMap.put("EOF", EOF);
+        functionMap.put("BOF", BOF);
+        functionMap.put("RECNO", RECNO);
+        functionMap.put("RECCOUNT", RECCOUNT);
+        functionMap.put("SKIP", SKIP);
+        functionMap.put("GOTO", GOTO);
+        functionMap.put("DELETED", DELETED);
     }
 
     @Override

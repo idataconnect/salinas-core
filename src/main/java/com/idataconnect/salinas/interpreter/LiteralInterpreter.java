@@ -9,7 +9,7 @@ import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import javax.script.ScriptContext;
+
 
 /**
  * Interpreter delegate implementation for nodes containing literal values.
@@ -31,7 +31,7 @@ public class LiteralInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context) {
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context) {
         switch (node.getId()) {
             case JJTSTRING:
                 return new SalinasValue(node.jjtGetValue().toString()

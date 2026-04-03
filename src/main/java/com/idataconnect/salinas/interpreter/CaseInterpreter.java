@@ -9,7 +9,7 @@ import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTCASE;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTOTHERWISE;
-import javax.script.ScriptContext;
+
 
 /**
  * Interpreter delegate implementation for DO CASE statement nodes.
@@ -31,7 +31,7 @@ public class CaseInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         SalinasValue returnValue = SalinasValue.NULL;
         for (int childCount = 0; childCount < node.jjtGetNumChildren(); childCount++) {
@@ -50,8 +50,7 @@ public class CaseInterpreter implements InterpreterDelegate {
                         returnValue = SalinasInterpreter.interpret(
                                 currentNode.getChild(statementCount), context);
 
-                        final SalinasValue returning = (SalinasValue) context
-                                .getAttribute("returning", ScriptContext.ENGINE_SCOPE);
+                        final SalinasValue returning = context.getReturning();
                         if (returning != null) {
                             return returning;
                         }
@@ -67,8 +66,7 @@ public class CaseInterpreter implements InterpreterDelegate {
                             (SalinasNode) currentNode.jjtGetChild(statementCount),
                             context);
 
-                    final SalinasValue returning = (SalinasValue) context
-                            .getAttribute("returning", ScriptContext.ENGINE_SCOPE);
+                    final SalinasValue returning = context.getReturning();
                     if (returning != null) {
                         return returning;
                     }

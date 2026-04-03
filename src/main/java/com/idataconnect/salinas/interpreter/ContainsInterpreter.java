@@ -7,7 +7,6 @@ import com.idataconnect.salinas.SalinasException;
 import com.idataconnect.salinas.data.SalinasType;
 import com.idataconnect.salinas.data.SalinasValue;
 import com.idataconnect.salinas.parser.SalinasNode;
-import javax.script.ScriptContext;
 
 /**
  * Interpreter delegate implementation for contains expressions.
@@ -29,7 +28,7 @@ public class ContainsInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         final String haystack = (String) SalinasInterpreter.interpret(
                 (SalinasNode) node.jjtGetChild(node.jjtGetNumChildren() - 1),

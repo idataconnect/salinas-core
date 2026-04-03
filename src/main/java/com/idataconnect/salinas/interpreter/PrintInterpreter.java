@@ -9,7 +9,7 @@ import com.idataconnect.salinas.parser.SalinasNode;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTPRINTLN;
 import static com.idataconnect.salinas.parser.SalinasParserTreeConstants.JJTPRINTPRELN;
 import java.io.IOException;
-import javax.script.ScriptContext;
+
 
 /**
  * An interpreter delegate which prints values to the script context's
@@ -32,7 +32,7 @@ public class PrintInterpreter implements InterpreterDelegate {
     }
 
     @Override
-    public SalinasValue interpret(SalinasNode node, ScriptContext context)
+    public SalinasValue interpret(SalinasNode node, SalinasExecutionContext context)
             throws SalinasException {
         try {
             if (node.getId() == JJTPRINTPRELN) {
@@ -41,7 +41,7 @@ public class PrintInterpreter implements InterpreterDelegate {
 
             final SalinasValue value = SalinasInterpreter
                     .interpret((SalinasNode) node.jjtGetChild(0), context);
-            context.getWriter().write(value.getDisplayValue(context));
+            context.getWriter().write(value.getDisplayValue(context.getConfig()));
 
             if (node.getId() == JJTPRINTLN) {
                 context.getWriter().write('\n');
