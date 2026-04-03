@@ -37,11 +37,10 @@ public class WorkAreaManager {
     }
 
     public Optional<WorkArea> getWorkArea(String alias) {
-        Integer id = aliasToId.get(alias.toUpperCase());
-        if (id != null) {
-            return getWorkArea(id);
-        }
-        return Optional.empty();
+        return Optional.ofNullable(alias)
+            .map(String::toUpperCase)
+            .map(aliasToId::get)
+            .flatMap(this::getWorkArea);
     }
 
     public int getCurrentWorkAreaId() {
