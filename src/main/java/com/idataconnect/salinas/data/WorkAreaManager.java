@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Manages multiple work areas in a script execution context.
@@ -11,7 +13,34 @@ import java.util.Optional;
 public class WorkAreaManager {
     private final Map<Integer, WorkArea> workAreas = new HashMap<>();
     private final Map<String, Integer> aliasToId = new HashMap<>();
+    private final List<WorkAreaListener> listeners = new ArrayList<>();
     private int currentWorkArea = 1;
+
+    public void addListener(WorkAreaListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(WorkAreaListener listener) {
+        listeners.remove(listener);
+    }
+
+    private void notifyWorkAreaChanged(int id, WorkArea wa) {
+        for (WorkAreaListener l : new ArrayList<>(listeners)) {
+            l.onWorkAreaChanged(id, wa);
+        }
+    }
+
+    private void notifyCurrentAreaChanged(int id) {
+        for (WorkAreaListener l : new ArrayList<>(listeners)) {
+            l.onCurrentWorkAreaChanged(id);
+        }
+    }
+
+    private void notifyAllClosed() {
+        for (WorkAreaListener l : new ArrayList<>(listeners)) {
+            l.onAllClosed();
+        }
+    }
 
     public void use(int id, WorkArea workArea) throws IOException {
         WorkArea old = workAreas.get(id);
@@ -26,6 +55,8 @@ public class WorkAreaManager {
             workAreas.remove(id);
         }
         currentWorkArea = id;
+        notifyWorkAreaChanged(id, workArea);
+        notifyCurrentAreaChanged(id);
     }
 
     public Optional<WorkArea> getCurrentWorkArea() {
@@ -49,6 +80,7 @@ public class WorkAreaManager {
 
     public void select(int id) {
         currentWorkArea = id;
+        notifyCurrentAreaChanged(id);
     }
 
     public void closeAll() throws IOException {
@@ -62,6 +94,7 @@ public class WorkAreaManager {
         }
         workAreas.clear();
         aliasToId.clear();
+        notifyAllClosed();
         if (lastEx != null) {
             throw lastEx;
         }
