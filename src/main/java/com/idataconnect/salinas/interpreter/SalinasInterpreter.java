@@ -92,6 +92,8 @@ public class SalinasInterpreter {
                 ArrayLiteralInterpreter.getInstance());
         delegateMap.put(JJTSET,
                 SetInterpreter.getInstance());
+        delegateMap.put(JJTSETEXPRESSION,
+                SetInterpreter.getInstance());
         delegateMap.put(JJTEXPONENT,
                 ExpressionInterpreter.getInstance());
         delegateMap.put(JJTUSE,

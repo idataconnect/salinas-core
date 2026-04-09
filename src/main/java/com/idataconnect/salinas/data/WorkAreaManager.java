@@ -83,6 +83,14 @@ public class WorkAreaManager {
         notifyCurrentAreaChanged(id);
     }
 
+    public int getNextAvailableId() {
+        int id = 1;
+        while (workAreas.containsKey(id)) {
+            id++;
+        }
+        return id;
+    }
+
     public void closeAll() throws IOException {
         IOException lastEx = null;
         for (WorkArea wa : workAreas.values()) {

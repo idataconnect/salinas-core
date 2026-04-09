@@ -184,12 +184,11 @@ void UseStatement() #Use :
 }
 {
     t = <USE> {initNode(jjtThis, t); t = null;}
-    (Expression()
-        (
-            (<IN> Expression()) #In
-            | (<ALIAS> t = <IDENTIFIER> {jjtThis.jjtSetValue(t.image);}) #Alias
-        )*
-    )?
+    (Expression())?
+    (
+        (<IN> Expression()) #In
+        | (<ALIAS> t = <IDENTIFIER> {jjtThis.jjtSetValue(t.image);}) #Alias
+    )*
 }
 
 void PrintStatement() #void : {Token t;}

@@ -32,36 +32,48 @@ public class UseInterpreter implements InterpreterDelegate {
         WorkAreaManager wam = context.getWorkAreaManager();
         SalinasConfig config = context.getConfig();
 
-        if (node.jjtGetNumChildren() == 0) {
-            // USE with no arguments closes current work area
-            try {
-                Optional<WorkArea> current = wam.getCurrentWorkArea();
-                if (current.isPresent()) {
-                    wam.use(wam.getCurrentWorkAreaId(), null);
-                }
-            } catch (IOException ex) {
-                throw new SalinasException("Error closing DBF", ex);
-            }
-            return null;
-        }
-
-        SalinasValue filenameValue = SalinasInterpreter.interpret((SalinasNode) node.jjtGetChild(0), context);
-        String filename = (String) filenameValue.asType(SalinasType.STRING);
-        
+        String filename = null;
         int workAreaId = wam.getCurrentWorkAreaId();
-        String alias = new File(filename).getName();
-        if (alias.toLowerCase().endsWith(".dbf")) {
-            alias = alias.substring(0, alias.length() - 4);
+        String alias = null;
+        int nextChild = 0;
+
+        // Check if the first child is a filename (not an IN or ALIAS node)
+        if (node.jjtGetNumChildren() > 0) {
+            SalinasNode firstChild = (SalinasNode) node.jjtGetChild(0);
+            if (firstChild.getId() != JJTIN && firstChild.getId() != JJTALIAS) {
+                SalinasValue filenameValue = SalinasInterpreter.interpret(firstChild, context);
+                filename = (String) filenameValue.asType(SalinasType.STRING);
+                nextChild = 1;
+                
+                alias = new File(filename).getName();
+                if (alias.toLowerCase().endsWith(".dbf")) {
+                    alias = alias.substring(0, alias.length() - 4);
+                }
+            }
         }
 
-        for (int i = 1; i < node.jjtGetNumChildren(); i++) {
+        // Process remaining children (IN and ALIAS)
+        for (int i = nextChild; i < node.jjtGetNumChildren(); i++) {
             SalinasNode child = (SalinasNode) node.jjtGetChild(i);
             if (child.getId() == JJTIN) {
                 SalinasValue inValue = SalinasInterpreter.interpret((SalinasNode) child.jjtGetChild(0), context);
                 workAreaId = ((BigDecimal) inValue.asType(SalinasType.NUMBER)).intValue();
+                if (workAreaId == 0) {
+                    workAreaId = wam.getNextAvailableId();
+                }
             } else if (child.getId() == JJTALIAS) {
                 alias = (String) child.jjtGetValue();
             }
+        }
+
+        if (filename == null) {
+            // USE IN <area> with no filename closes the specified work area
+            try {
+                wam.use(workAreaId, null);
+            } catch (IOException ex) {
+                throw new SalinasException("Error closing DBF in area " + workAreaId, ex);
+            }
+            return null;
         }
 
         try {

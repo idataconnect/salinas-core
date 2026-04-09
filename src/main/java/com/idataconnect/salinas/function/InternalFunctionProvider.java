@@ -600,6 +600,35 @@ public class InternalFunctionProvider extends FunctionProvider {
         }
     };
 
+    public static final Function SELECT = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            com.idataconnect.salinas.data.WorkAreaManager wam = context.getWorkAreaManager();
+            if (parameters.length > 0) {
+                int val = ((BigDecimal) parameters[0].asType(SalinasType.NUMBER)).intValue();
+                if (val == 0) {
+                    return new SalinasValue(BigDecimal.valueOf(wam.getNextAvailableId()), SalinasType.NUMBER);
+                }
+            }
+            return new SalinasValue(BigDecimal.valueOf(wam.getCurrentWorkAreaId()), SalinasType.NUMBER);
+        }
+    };
+
+    public static final Function ALIAS = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            com.idataconnect.salinas.data.WorkAreaManager wam = context.getWorkAreaManager();
+            java.util.Optional<com.idataconnect.salinas.data.WorkArea> wa;
+            if (parameters.length > 0) {
+                int id = ((BigDecimal) parameters[0].asType(SalinasType.NUMBER)).intValue();
+                wa = wam.getWorkArea(id);
+            } else {
+                wa = wam.getCurrentWorkArea();
+            }
+            return new SalinasValue(wa.map(com.idataconnect.salinas.data.WorkArea::getAlias).orElse(""), SalinasType.STRING);
+        }
+    };
+
     private static void checkParameterCount(String functionName, int length,
             SalinasValue... parameters) throws FunctionCallException {
         if (length != parameters.length) {
@@ -649,6 +678,8 @@ public class InternalFunctionProvider extends FunctionProvider {
         functionMap.put("SKIP", SKIP);
         functionMap.put("GOTO", GOTO);
         functionMap.put("DELETED", DELETED);
+        functionMap.put("SELECT", SELECT);
+        functionMap.put("ALIAS", ALIAS);
     }
 
     @Override
