@@ -1,4 +1,4 @@
-/* Copyright 2011-2013 i Data Connect! */
+/* Copyright 2011-2026 i Data Connect! */
 PARSER_BEGIN(SalinasParser)
 package com.idataconnect.salinas.parser;
 
@@ -12,6 +12,29 @@ public class SalinasParser {
     protected void initNode(SalinasNode node, Token t) {
         node.setBeginLine(t.beginLine);
         node.setBeginColumn(t.beginColumn);
+    }
+
+    public static String getSource(Token first, Token last) {
+        if (first == null || last == null) return "";
+        StringBuilder sb = new StringBuilder();
+        Token t = first;
+        while (t != null) {
+            Token st = t.specialToken;
+            if (st != null) {
+                java.util.List<Token> specials = new java.util.ArrayList<Token>();
+                while (st != null) {
+                    specials.add(0, st);
+                    st = st.specialToken;
+                }
+                for (Token s : specials) {
+                    sb.append(s.image);
+                }
+            }
+            sb.append(t.image);
+            if (t == last) break;
+            t = t.next;
+        }
+        return sb.toString();
     }
 }
 PARSER_END(SalinasParser)
@@ -70,10 +93,12 @@ TOKEN : { < STRING_TYPE : ":STRING" > }
 TOKEN : { < DATE_TYPE : ":DATE" > }
 TOKEN : { < BOOLEAN_TYPE : ":BOOLEAN" > }
 TOKEN : { < PUBLIC : "PUBL" ("I" ("C")?)? > }
+TOKEN : { < STATUS : "STAT" ("U" ("S")?)? > }
 TOKEN : { < STATIC : "STAT" ("I" ("C")?)? > }
 TOKEN : { < USE : "USE" > }
 TOKEN : { < IN : "IN" > }
 TOKEN : { < ALIAS : "ALIA" ("S")? > }
+TOKEN : { < ORDER : "ORDE" ("R")? > }
 TOKEN : { < PRINT : "??" > }
 TOKEN : { < PRINTLN : "?" > }
 TOKEN : { < PRINTPRELN : "???" > }
@@ -98,9 +123,25 @@ TOKEN : { < ENDIF : "ENDIF" > }
 TOKEN : { < FUNCTION : "FUNC" ("T" ("I" ("O" ("N")?)?)?)? | "PROC" ("E" ("D" ("U" ("R" ("E")?)?)?)?)? > }
 TOKEN : { < ENDFUNC : "ENDFU" ("N" ("C")?)? | "ENDP" ("R" ("O" ("C")?)?)? > }
 TOKEN : { < RETURN : "RETU" ("R" ("N")?)? > }
+TOKEN : { < GOTO : "GOTO" | "GO" > }
+TOKEN : { < TOP : "TOP" > }
+TOKEN : { < BOTTOM : "BOTT" ("O" ("M")?)? > }
 TOKEN : { < REPLACE : "REPL" ("A" ("C" ("E")?)?)? > }
 TOKEN : { < CREATE : "CREA" ("T" ("E")?)? > }
 TOKEN : { < WITH : "WITH" > }
+TOKEN : { < APPEND : "APPE" ("N" ("D")?)? > }
+TOKEN : { < INDEX : "INDE" ("X")? > }
+TOKEN : { < TAG : "TAG" > }
+TOKEN : { < UNIQUE : "UNIQ" ("U" ("E")?)? > }
+TOKEN : { < DISPLAY : "DISP" ("L" ("A" ("Y")?)?)? > }
+TOKEN : { < LIST : "LIST" | "PRIN" ("T")? > }
+TOKEN : { < STRUCTURE : "STRU" ("C" ("T" ("U" ("R" ("E")?)?)?)?)? > }
+TOKEN : { < DESCENDING : "DESC" ("E" ("N" ("D" ("I" ("N" ("G")?)?)?)?)?)? > }
+TOKEN : { < BLANK : "BLAN" ("K")? > }
+TOKEN : { < AT : "@" > }
+TOKEN : { < SAY : "SAY" > }
+TOKEN : { < GET : "GET" > }
+TOKEN : { < COMMA : "," > }
 TOKEN : { < DATE_LITERAL : <UNAMBIGUOUS_DATE_LITERAL> | <AMBIGUOUS_DATE_LITERAL> > }
 TOKEN : { < NUMBER_LITERAL : <INTEGER_LITERAL> | <DECIMAL_LITERAL> | <HEX_LITERAL> | <BINARY_LITERAL> > }
 TOKEN : { < IDENTIFIER : <LETTER> (<LETTER> | <DIGIT>)* > }
@@ -114,7 +155,7 @@ TOKEN : { < #DECIMAL_LITERAL : (<DIGIT> ((<DIGIT> | "_")* <DIGIT>)?)? "." <DIGIT
 TOKEN : { < #HEX_LITERAL : "0" "x" (<DIGIT> | ["a" - "f"]) (<DIGIT> | ["a" - "f"] | "_")* > }
 TOKEN : { < #BINARY_LITERAL : "0" "b" ("0" | "1") ("0" | "1" | "_")* > }
 TOKEN : { < #DIGIT : ["0" - "9"] > }
-TOKEN : { < #LETTER : ["a" - "z", "_"] > }
+TOKEN : { < #LETTER : ["a" - "z", "A" - "Z", "_"] > }
 TOKEN : { < #SL_COMMENT_SLASHES : "//" > }
 TOKEN : { < #SL_COMMENT_AMPERSANDS : "&&" > }
 
@@ -137,14 +178,20 @@ void TerminatedStatement() #void : {}
 void Statement() : {}
 {
     UseStatement()
+    | IndexStatement()
+    | GotoStatement()
+    | DisplayStatement()
+    | ListStatement()
     | ReplaceStatement()
-    | CreateStatement()
+    | AppendStatement()
     | ForLoop()
+    | LOOKAHEAD(<AT>) AtSayStatement()
     | PrintStatement()
     | IfBlock()
     | ReturnStatement()
     | LOOKAHEAD(<DO> <WHILE>) WhileLoop()
-    | CaseBlock()
+    | LOOKAHEAD(<DO> <CASE>) CaseBlock()
+    | DoStatement()
     | LOOKAHEAD(<SET> <IDENTIFIER>) SetStatement()
     /* Need two lookaheads for array access since the semantic lookahead inside
        ArrayAccessExpression() prevents us from doing LOOKAHEAD(ArrayAccessExpression() <STARTS_WITH>)
@@ -161,15 +208,26 @@ void ReplaceStatement() #Replace : {Token t;}
     (<IN> Expression())?
 }
 
-void CreateStatement() #Create : {Token t;}
+
+void AppendStatement() #Append : {Token t;}
 {
-    t = <CREATE> {initNode(jjtThis, t); t = null;}
-    (Identifier())?
+    t = <APPEND> {initNode(jjtThis, t); t = null;}
+    (<BLANK> {jjtThis.jjtSetValue(Boolean.TRUE);})?
 }
 
 void AssignmentStatement() #Assign : {}
 {
     ArrayAccessExpression() <STARTS_WITH> Expression()
+}
+
+void AtSayStatement() #AtSay : {Token t;}
+{
+    t = <AT> {initNode(jjtThis, t); t = null;}
+    Expression() <COMMA> Expression()
+    (
+        <SAY> Expression()
+        | <GET> Expression()
+    )
 }
 
 void ReturnStatement() #Return : {Token t;}
@@ -184,11 +242,70 @@ void UseStatement() #Use :
 }
 {
     t = <USE> {initNode(jjtThis, t); t = null;}
-    (Expression())?
+    Expression()
     (
         (<IN> Expression()) #In
         | (<ALIAS> t = <IDENTIFIER> {jjtThis.jjtSetValue(t.image);}) #Alias
+        | (<ORDER> Expression()) #Order
     )*
+}
+
+void GotoStatement() #Goto :
+{
+    Token t;
+}
+{
+    t = <GOTO> {initNode(jjtThis, t); t = null;}
+    (
+        <TOP> { jjtThis.jjtSetValue("TOP"); }
+        | <BOTTOM> { jjtThis.jjtSetValue("BOTTOM"); }
+        | Expression()
+    )
+}
+
+void DisplayStatement() #Display :
+{
+    Token t;
+}
+{
+    t = <DISPLAY> {initNode(jjtThis, t); t = null;}
+    (
+        <STRUCTURE> { jjtThis.jjtSetValue("STRUCTURE"); }
+        | <STATUS> { jjtThis.jjtSetValue("STATUS"); }
+        | (Expression())?
+    )
+}
+
+void ListStatement() #List :
+{
+    Token t;
+}
+{
+    t = <LIST> {initNode(jjtThis, t); t = null;}
+    (
+        <STRUCTURE> { jjtThis.jjtSetValue("STRUCTURE"); }
+        | <STATUS> { jjtThis.jjtSetValue("STATUS"); }
+        | (Expression())?
+    )
+}
+
+void IndexStatement() #Index :
+{
+    Token t;
+    IndexOptions options;
+    Token first = null;
+    Token last = null;
+}
+{
+    t = <INDEX> {initNode(jjtThis, t); t = null; options = new IndexOptions(); jjtThis.jjtSetValue(options);}
+    <ON> { first = getToken(1); } Expression() { last = token; options.setExpressionSource(getSource(first, last)); }
+    (
+        <TAG> t = <IDENTIFIER> { options.setTagName(t.image); }
+        | <TO> Expression() // Re-use Expression for filename strings
+    )
+    (<FOR> Expression())?
+    (<UNIQUE> {options.setUnique(true);})?
+    (<DESCENDING> {options.setDescending(true);})?
 }
 
 void PrintStatement() #void : {Token t;}
@@ -495,6 +612,12 @@ void WhileLoop() : {Token t;}
     <ENDDO>
 }
 
+void DoStatement() #Do : {Token t;}
+{
+    t = <DO> {initNode(jjtThis, t); t = null;}
+    Expression()
+}
+
 void CaseBlock() : {Token t;}
 {
     t = <DO> {initNode(jjtThis, t); t = null;}
@@ -560,6 +683,7 @@ String Identifier() : {Token t;}
     )
     {return (String) jjtThis.jjtGetValue();}
 }
+
 
 void ArrayLiteral() : {Token t;}
 {

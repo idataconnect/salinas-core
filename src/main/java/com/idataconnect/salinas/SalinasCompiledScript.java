@@ -81,6 +81,17 @@ public class SalinasCompiledScript extends CompiledScript {
         return run(ast, context);
     }
 
+    /**
+     * Imports all functions defined in this script into the given context
+     * without executing the top-level script code.
+     *
+     * @param context the script context to import into
+     */
+    public void importOnly(ScriptContext context) {
+        SalinasExecutionContext execContext = new SalinasExecutionContext(context);
+        importFunctions(ast, execContext);
+    }
+
     private Object run(SalinasNode node, ScriptContext context) throws ScriptException {
         if (context.getAttribute("salinasConfig") == null) {
             context.setAttribute("salinasConfig", new SalinasConfig(),

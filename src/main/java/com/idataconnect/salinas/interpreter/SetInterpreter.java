@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 i Data Connect!
+ * Copyright 2011-2026 i Data Connect!
  */
 package com.idataconnect.salinas.interpreter;
 
@@ -15,7 +15,7 @@ import java.io.File;
  * Interpreter delegate for SET statements and expressions.
  */
 public class SetInterpreter implements InterpreterDelegate {
-    
+
     private static SetInterpreter instance;
 
     /**
@@ -51,7 +51,7 @@ public class SetInterpreter implements InterpreterDelegate {
 
         SalinasNode identifierNode = node.getChild(0);
         String identifierName = (String) identifierNode.jjtGetValue();
-        
+
         // Handle SET DECIMALS TO <num>
         if (identifierName.equalsIgnoreCase("decimals")) {
             if (node.jjtGetNumChildren() == 1) {
@@ -83,16 +83,36 @@ public class SetInterpreter implements InterpreterDelegate {
 
         // Handle SET DIRECTORY TO <path> or SET DEFAULT TO <path>
         if (identifierName.equalsIgnoreCase("directory") || identifierName.equalsIgnoreCase("default")) {
-            if (node.jjtGetNumChildren() == 1) {
-                context.getConfig().setCurrentDirectory(null);
-                return SalinasValue.NULL;
+            File dir = null;
+            if (node.jjtGetNumChildren() > 1) {
+                final SalinasValue v = SalinasInterpreter.interpret(
+                        node.getChild(1), context);
+                final String path = (String) v.asType(SalinasType.STRING);
+
+                // Resolve relative to previous directory
+                dir = new File(path);
+                if (!dir.isAbsolute() && context.getConfig().getCurrentDirectory() != null) {
+                    dir = new File(context.getConfig().getCurrentDirectory(), path);
+                }
+
+                try {
+                    dir = dir.getCanonicalFile();
+                } catch (java.io.IOException e) {
+                    dir = dir.getAbsoluteFile();
+                }
             }
 
-            final SalinasValue v = SalinasInterpreter.interpret(
-                    node.getChild(1), context);
-            final String path = (String) v.asType(SalinasType.STRING);
-            context.getConfig().setCurrentDirectory(new File(path));
-            return v;
+            context.getConfig().setCurrentDirectory(dir);
+            String pathString = (dir != null) ? dir.getAbsolutePath() : "";
+            context.getScriptContext().setAttribute("salinasCurrentPath", pathString, javax.script.ScriptContext.ENGINE_SCOPE);
+
+            // Notify UI if present
+            Object ui = context.getScriptContext().getAttribute("salinasUI");
+            if (ui instanceof com.idataconnect.salinas.SalinasUI) {
+                 ((com.idataconnect.salinas.SalinasUI) ui).setCurrentPath(pathString);
+            }
+
+            return (dir != null) ? new SalinasValue(pathString, SalinasType.STRING) : SalinasValue.NULL;
         }
 
         return SalinasValue.UNDEFINED;

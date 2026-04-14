@@ -41,18 +41,32 @@ public class UseInterpreter implements InterpreterDelegate {
         if (node.jjtGetNumChildren() > 0) {
             SalinasNode firstChild = (SalinasNode) node.jjtGetChild(0);
             if (firstChild.getId() != JJTIN && firstChild.getId() != JJTALIAS) {
-                SalinasValue filenameValue = SalinasInterpreter.interpret(firstChild, context);
-                filename = (String) filenameValue.asType(SalinasType.STRING);
+                if (firstChild.getId() == JJTIDENTIFIER) {
+                    // Raw literal identifier like "USE test"
+                    filename = (String) firstChild.jjtGetValue();
+                } else {
+                    // Expression like "USE 'test.dbf'" or "USE (cFile)"
+                    SalinasValue filenameValue = SalinasInterpreter.interpret(firstChild, context);
+                    filename = (String) filenameValue.asType(SalinasType.STRING);
+                }
                 nextChild = 1;
                 
-                alias = new File(filename).getName();
-                if (alias.toLowerCase().endsWith(".dbf")) {
-                    alias = alias.substring(0, alias.length() - 4);
+                // Set default alias and ensure filename has an extension
+                if (filename != null) {
+                    alias = new File(filename).getName();
+                    if (alias.toLowerCase().endsWith(".dbf")) {
+                        alias = alias.substring(0, alias.length() - 4);
+                    } else if (!filename.contains(".")) {
+                        // dBase defaults to .dbf if no extension is provided
+                        filename = filename + ".dbf";
+                    }
                 }
             }
         }
 
-        // Process remaining children (IN and ALIAS)
+        SalinasValue orderValue = null;
+
+        // Process remaining children (IN, ALIAS, ORDER)
         for (int i = nextChild; i < node.jjtGetNumChildren(); i++) {
             SalinasNode child = (SalinasNode) node.jjtGetChild(i);
             if (child.getId() == JJTIN) {
@@ -63,6 +77,8 @@ public class UseInterpreter implements InterpreterDelegate {
                 }
             } else if (child.getId() == JJTALIAS) {
                 alias = (String) child.jjtGetValue();
+            } else if (child.getId() == JJTORDER) {
+                orderValue = SalinasInterpreter.interpret((SalinasNode) child.jjtGetChild(0), context);
             }
         }
 
@@ -82,6 +98,12 @@ public class UseInterpreter implements InterpreterDelegate {
                 dbfFile = new File(config.getCurrentDirectory(), filename);
             }
             DBF dbf = DBF.use(dbfFile);
+            
+            if (orderValue != null) {
+                Object order = orderValue.getValue();
+                dbf.setOrder(order);
+            }
+
             wam.use(workAreaId, new WorkArea(alias, dbf));
         } catch (IOException ex) {
             throw new SalinasException("Error opening DBF: " + filename, ex);

@@ -23,85 +23,55 @@ import java.util.Optional;
 public class SalinasInterpreter {
 
     /**
-     * A map of AST IDs to interpreter delegates assigned to interpret the
+     * Array of interpreter delegates assigned to interpret the
      * node. When more node types are added to salinas.jjt, delegates should
-     * be added to this map. Some nodes are handled by the delegates directly,
-     * and do not need to be added to this map.
+     * be added to this array. Some nodes are handled by the delegates directly,
+     * and do not need to be added to this array.
      */
-    private static final Map<Integer, InterpreterDelegate> delegateMap
-            = new HashMap<Integer, InterpreterDelegate>(64, 0.5f);
+    private static final InterpreterDelegate[] delegates = new InterpreterDelegate[SalinasParserTreeConstants.jjtNodeName.length];
 
     static {
-        delegateMap.put(JJTSALINASSCRIPT,
-                StatementInterpreter.getInstance());
-        delegateMap.put(JJTSTATEMENT,
-                StatementInterpreter.getInstance());
-        delegateMap.put(JJTIDENTIFIER,
-                ExpressionInterpreter.getInstance());
-        delegateMap.put(JJTMULTIPLICATIVE,
-                ExpressionInterpreter.getInstance());
-        delegateMap.put(JJTADDITIVE,
-                ExpressionInterpreter.getInstance());
-        delegateMap.put(JJTASSIGN,
-                AssignInterpreter.getInstance());
-        delegateMap.put(JJTEQUALITY,
-                ExpressionInterpreter.getInstance());
-        delegateMap.put(JJTCOMPARE,
-                ExpressionInterpreter.getInstance());
-        delegateMap.put(JJTNUMBER,
-                LiteralInterpreter.getInstance());
-        delegateMap.put(JJTSTRING,
-                LiteralInterpreter.getInstance());
-        delegateMap.put(JJTBOOLEAN,
-                LiteralInterpreter.getInstance());
-        delegateMap.put(JJTDATE,
-                LiteralInterpreter.getInstance());
-        delegateMap.put(JJTNULL,
-                LiteralInterpreter.getInstance());
-        delegateMap.put(JJTPRINT,
-                PrintInterpreter.getInstance());
-        delegateMap.put(JJTPRINTLN,
-                PrintInterpreter.getInstance());
-        delegateMap.put(JJTPRINTPRELN,
-                PrintInterpreter.getInstance());
-        delegateMap.put(JJTCONTAINS,
-                ContainsInterpreter.getInstance());
-        delegateMap.put(JJTAND,
-                BooleanInterpreter.getInstance());
-        delegateMap.put(JJTOR,
-                BooleanInterpreter.getInstance());
-        delegateMap.put(JJTBOOLEANNOT,
-                BooleanInterpreter.getInstance());
-        delegateMap.put(JJTIFBLOCK,
-                IfInterpreter.getInstance());
-        delegateMap.put(JJTFORLOOP,
-                ForInterpreter.getInstance());
-        delegateMap.put(JJTCASEBLOCK,
-                CaseInterpreter.getInstance());
-        delegateMap.put(JJTWHILELOOP,
-                WhileInterpreter.getInstance());
-        delegateMap.put(JJTFUNCTIONDECLARATION,
-                FunctionDeclInterpreter.getInstance());
-        delegateMap.put(JJTRETURN,
-                ReturnInterpreter.getInstance());
-        delegateMap.put(JJTFUNCTIONCALL,
-                FunctionCallInterpreter.getInstance());
-        delegateMap.put(JJTARRAYACCESS,
-                ArrayAccessInterpreter.getInstance());
-        delegateMap.put(JJTARRAYLITERAL,
-                ArrayLiteralInterpreter.getInstance());
-        delegateMap.put(JJTSET,
-                SetInterpreter.getInstance());
-        delegateMap.put(JJTSETEXPRESSION,
-                SetInterpreter.getInstance());
-        delegateMap.put(JJTEXPONENT,
-                ExpressionInterpreter.getInstance());
-        delegateMap.put(JJTUSE,
-                UseInterpreter.getInstance());
-        delegateMap.put(JJTREPLACE,
-                ReplaceInterpreter.getInstance());
-        delegateMap.put(JJTCREATE,
-                CreateInterpreter.getInstance());
+        delegates[JJTSALINASSCRIPT] = StatementInterpreter.getInstance();
+        delegates[JJTSTATEMENT] = StatementInterpreter.getInstance();
+        delegates[JJTIDENTIFIER] = ExpressionInterpreter.getInstance();
+        delegates[JJTMULTIPLICATIVE] = ExpressionInterpreter.getInstance();
+        delegates[JJTADDITIVE] = ExpressionInterpreter.getInstance();
+        delegates[JJTASSIGN] = AssignInterpreter.getInstance();
+        delegates[JJTEQUALITY] = ExpressionInterpreter.getInstance();
+        delegates[JJTCOMPARE] = ExpressionInterpreter.getInstance();
+        delegates[JJTNUMBER] = LiteralInterpreter.getInstance();
+        delegates[JJTSTRING] = LiteralInterpreter.getInstance();
+        delegates[JJTBOOLEAN] = LiteralInterpreter.getInstance();
+        delegates[JJTDATE] = LiteralInterpreter.getInstance();
+        delegates[JJTNULL] = LiteralInterpreter.getInstance();
+        delegates[JJTPRINT] = PrintInterpreter.getInstance();
+        delegates[JJTPRINTLN] = PrintInterpreter.getInstance();
+        delegates[JJTPRINTPRELN] = PrintInterpreter.getInstance();
+        delegates[JJTCONTAINS] = ContainsInterpreter.getInstance();
+        delegates[JJTAND] = BooleanInterpreter.getInstance();
+        delegates[JJTOR] = BooleanInterpreter.getInstance();
+        delegates[JJTBOOLEANNOT] = BooleanInterpreter.getInstance();
+        delegates[JJTIFBLOCK] = IfInterpreter.getInstance();
+        delegates[JJTFORLOOP] = ForInterpreter.getInstance();
+        delegates[JJTCASEBLOCK] = CaseInterpreter.getInstance();
+        delegates[JJTWHILELOOP] = WhileInterpreter.getInstance();
+        delegates[JJTFUNCTIONDECLARATION] = FunctionDeclInterpreter.getInstance();
+        delegates[JJTRETURN] = ReturnInterpreter.getInstance();
+        delegates[JJTFUNCTIONCALL] = FunctionCallInterpreter.getInstance();
+        delegates[JJTARRAYACCESS] = ArrayAccessInterpreter.getInstance();
+        delegates[JJTARRAYLITERAL] = ArrayLiteralInterpreter.getInstance();
+        delegates[JJTSET] = SetInterpreter.getInstance();
+        delegates[JJTSETEXPRESSION] = SetInterpreter.getInstance();
+        delegates[JJTEXPONENT] = ExpressionInterpreter.getInstance();
+        delegates[JJTUSE] = UseInterpreter.getInstance();
+        delegates[JJTREPLACE] = ReplaceInterpreter.getInstance();
+        delegates[JJTAPPEND] = AppendInterpreter.getInstance();
+        delegates[JJTINDEX] = IndexInterpreter.getInstance();
+        delegates[JJTGOTO] = GotoInterpreter.getInstance();
+        delegates[JJTDISPLAY] = DisplayInterpreter.getInstance();
+        delegates[JJTLIST] = ListInterpreter.getInstance();
+        delegates[JJTDO] = DoInterpreter.getInstance();
+        delegates[JJTATSAY] = AtSayInterpreter.getInstance();
     }
 
     private SalinasInterpreter() {}
@@ -129,6 +99,9 @@ public class SalinasInterpreter {
     }
 
     static InterpreterDelegate getDelegate(int nodeId) {
-        return delegateMap.get(Integer.valueOf(nodeId));
+        if (nodeId >= delegates.length || nodeId < 0) {
+            return null;
+        }
+        return delegates[nodeId];
     }
 }

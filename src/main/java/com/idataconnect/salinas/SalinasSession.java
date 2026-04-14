@@ -20,14 +20,17 @@ public class SalinasSession {
     private String currentPath;
 
     public SalinasSession() {
+        SalinasConfig config = new SalinasConfig();
         this.currentPath = new File(".").getAbsolutePath();
+        config.setCurrentDirectory(new File(currentPath));
 
         // Initialize persistent execution context
         ScriptContext sc = engine.getContext();
-        sc.setAttribute("salinasConfig", new SalinasConfig(), ScriptContext.ENGINE_SCOPE);
+        sc.setAttribute("salinasConfig", config, ScriptContext.ENGINE_SCOPE);
         sc.setAttribute("salinasCallStack", new CallStack(), ScriptContext.ENGINE_SCOPE);
         sc.setAttribute("salinasFunctionContext", new FunctionContext(sc), ScriptContext.ENGINE_SCOPE);
         sc.setAttribute("salinasWorkAreaManager", workAreaManager, ScriptContext.ENGINE_SCOPE);
+        sc.setAttribute("salinasCurrentPath", currentPath, ScriptContext.ENGINE_SCOPE);
         // User should set "salinasApp" or other UI-specific attributes externally
         this.execContext = new SalinasExecutionContext(sc);
     }
@@ -50,5 +53,9 @@ public class SalinasSession {
 
     public void setCurrentPath(String currentPath) {
         this.currentPath = currentPath;
+        if (execContext != null && execContext.getConfig() != null) {
+            execContext.getConfig().setCurrentDirectory(new File(currentPath));
+        }
+        engine.getContext().setAttribute("salinasCurrentPath", currentPath, ScriptContext.ENGINE_SCOPE);
     }
 }

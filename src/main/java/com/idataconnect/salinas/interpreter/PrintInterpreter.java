@@ -39,9 +39,12 @@ public class PrintInterpreter implements InterpreterDelegate {
                 context.getWriter().write('\n');
             }
 
-            final SalinasValue value = SalinasInterpreter
-                    .interpret((SalinasNode) node.jjtGetChild(0), context);
-            context.getWriter().write(value.getDisplayValue(context.getConfig()));
+            SalinasValue value = SalinasValue.NULL;
+            if (node.jjtGetNumChildren() > 0) {
+                value = SalinasInterpreter
+                        .interpret((SalinasNode) node.jjtGetChild(0), context);
+                context.getWriter().write(value.getDisplayValue(context.getConfig()));
+            }
 
             if (node.getId() == JJTPRINTLN) {
                 context.getWriter().write('\n');

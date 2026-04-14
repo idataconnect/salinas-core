@@ -614,6 +614,34 @@ public class InternalFunctionProvider extends FunctionProvider {
         }
     };
 
+    /**
+     * Return the current working directory.
+     */
+    public static final Function CURDIR = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            java.io.File dir = context.getConfig().getCurrentDirectory();
+            return new SalinasValue(dir != null ? dir.getAbsolutePath() : "", SalinasType.STRING);
+        }
+    };
+
+    /**
+     * Return the full path of the given filename.
+     */
+    public static final Function FULLPATH = new Function() {
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
+            checkParameterCount("FULLPATH", 1, parameters);
+            String filename = parameters[0].asString();
+            java.io.File dir = context.getConfig().getCurrentDirectory();
+            java.io.File file = new java.io.File(filename);
+            if (!file.isAbsolute() && dir != null) {
+                file = new java.io.File(dir, filename);
+            }
+            return new SalinasValue(file.getAbsolutePath(), SalinasType.STRING);
+        }
+    };
+
     public static final Function ALIAS = new Function() {
         @Override
         public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters) throws SalinasException {
@@ -626,6 +654,30 @@ public class InternalFunctionProvider extends FunctionProvider {
                 wa = wam.getCurrentWorkArea();
             }
             return new SalinasValue(wa.map(com.idataconnect.salinas.data.WorkArea::getAlias).orElse(""), SalinasType.STRING);
+        }
+    };
+
+    /**
+     * Returns a string representing the type of the given variable name.
+     */
+    public static final Function TYPE = new Function() {
+
+        @Override
+        public SalinasValue call(SalinasExecutionContext context, SalinasValue... parameters)
+                throws SalinasException {
+            checkParameterCount("TYPE", 1, parameters);
+            String name = (String) parameters[0].asType(SalinasType.STRING);
+            Optional<SalinasValue> varValue = context.getVariable(name);
+            if (!varValue.isPresent()) {
+                return new SalinasValue("U", SalinasType.STRING);
+            }
+            SalinasType type = varValue.get().getCurrentType();
+            if (type == SalinasType.NUMBER) return new SalinasValue("N", SalinasType.STRING);
+            if (type == SalinasType.STRING) return new SalinasValue("C", SalinasType.STRING);
+            if (type == SalinasType.BOOLEAN) return new SalinasValue("L", SalinasType.STRING);
+            if (type == SalinasType.DATE) return new SalinasValue("D", SalinasType.STRING);
+            if (type == SalinasType.ARRAY) return new SalinasValue("A", SalinasType.STRING);
+            return new SalinasValue("U", SalinasType.STRING);
         }
     };
 
@@ -680,6 +732,10 @@ public class InternalFunctionProvider extends FunctionProvider {
         functionMap.put("DELETED", DELETED);
         functionMap.put("SELECT", SELECT);
         functionMap.put("ALIAS", ALIAS);
+        functionMap.put("CURDIR", CURDIR);
+        functionMap.put("PWD", CURDIR);
+        functionMap.put("FULLPATH", FULLPATH);
+        functionMap.put("TYPE", TYPE);
     }
 
     @Override

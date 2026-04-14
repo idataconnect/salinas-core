@@ -38,6 +38,7 @@
                             <unicodeInput>true</unicodeInput>
                             <nodeClass>SalinasNode</nodeClass>
                             <cacheTokens>true</cacheTokens>
+                            <trackTokens>false</trackTokens>
                         </configuration>
                     </execution>
                 </executions>

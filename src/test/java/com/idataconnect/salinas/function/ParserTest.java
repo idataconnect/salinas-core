@@ -205,4 +205,9 @@ public class ParserTest {
             assertTrue(ex.getMessage().contains("not found"));
         }
     }
+
+    @Test
+    public void testIdentifierWithDigits() throws Exception {
+        assertEquals(BigDecimal.valueOf(123), salinas.eval("field3 = 123;; return field3"));
+    }
 }
